@@ -3,7 +3,7 @@
 Tick a box when the task's tests pass and the commit is made. Log plan fixes as `PLAN-FIX: ...` and type ignores as `TYPE-IGNORE: ...`.
 
 - [x] 0.1 Project scaffold
-- [ ] 1.1 Common types
+- [x] 1.1 Common types
 - [ ] 1.2 Incident & evidence models
 - [ ] 1.3 Findings, hypotheses, critique, plan models
 - [ ] 1.4 Report & state models
@@ -53,3 +53,4 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 
 ## Log
 - 2026-10-20: 0.1 done. Docs copied from the Desktop project folder (the path in 00-execution-guide.md section 5 did not exist). Smoke test passes; ruff clean.
+- 2026-10-20: 1.1 done. test_domain_common.py: 4 passed.
