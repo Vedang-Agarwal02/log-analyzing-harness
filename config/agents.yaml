@@ -1,0 +1,61 @@
+# Agent catalog. Add a specialist by adding an entry under `specialists` and a prompt file.
+planner:
+  prompt: planner.md
+  output: plan
+  tools: []
+  effort: medium
+  max_turns: 4
+  max_tool_calls: 0
+
+specialists:
+  observability:
+    description: "Logs and metrics: finds anomalies and their onset, error patterns, saturation signals and data gaps."
+    prompt: observability.md
+    output: finding
+    tools: [detect_anomalies, list_metrics, query_metrics, query_logs]
+    effort: medium
+    max_turns: 12
+    max_tool_calls: 16
+  dependency:
+    description: "Deployments, configuration and feature-flag changes, and service dependencies: correlates changes with the onset and rules out coincidental ones."
+    prompt: dependency.md
+    output: finding
+    tools: [get_config_changes, get_deployments, get_service_dependencies, list_services]
+    effort: medium
+    max_turns: 10
+    max_tool_calls: 14
+
+reasoning:
+  prompt: reasoning.md
+  output: hypotheses
+  tools: [get_evidence, search_incident_history]
+  effort: high
+  max_turns: 8
+  max_tool_calls: 8
+
+critic:
+  prompt: critic.md
+  output: critique
+  tools: [get_evidence]
+  effort: high
+  max_turns: 6
+  max_tool_calls: 6
+
+reporter:
+  prompt: reporter.md
+  output: report
+  tools: [get_evidence]
+  effort: medium
+  max_turns: 6
+  max_tool_calls: 4
+  use_reserve: true
+
+single_agent:
+  prompt: single_agent.md
+  output: report
+  tools: [detect_anomalies, get_config_changes, get_deployments, get_evidence, get_service_dependencies,
+          list_metrics, list_services, query_logs, query_metrics, search_incident_history]
+  effort: high
+  max_turns: 40
+  max_tool_calls: 60
+  use_reserve: true
