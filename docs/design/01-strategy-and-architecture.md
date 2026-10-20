@@ -75,7 +75,7 @@ On-call engineers lose the first 30–90 minutes of an incident gathering contex
 
 ### 1.4 Non-goals (v1)
 
-- No UI. CLI and Markdown/JSON reports only (the assignment says no polished frontend is needed).
+- No polished UI. The CLI, Markdown/JSON reports and a plain Streamlit demo page (runs, files, failures, live runs) are the only interfaces (the assignment says no polished frontend is needed).
 - No automatic remediation. Tools are read-only, and actions are recommendations for a human.
 - No real telemetry connectors. The backend interfaces exist, but only the simulated implementations ship.
 - No multi-tenant service, auth or persistence beyond local files. An HTTP wrapper (e.g. FastAPI) would be a thin addition, but it is not in the plan.
@@ -967,8 +967,8 @@ Our one-method interface costs about 150 lines per provider.
 **ADR-14 Observability: JSONL traces; an OpenTelemetry exporter later.**
 - *LangSmith, Langfuse, Logfire, Phoenix:* each needs an account or extra infrastructure. The GenAI semantic conventions are still in *Development* status, so a later, optional exporter is the right level of commitment. It is not in the plan.
 
-**ADR-15 Interface: CLI (Typer + Rich).**
-- *Web UI:* the assignment explicitly does not need one.
+**ADR-15 Interface: CLI (Typer + Rich), plus a plain Streamlit demo page.**
+- *Web UI:* the assignment does not need a polished one. A plain Streamlit page (`investigator ui`) is kept for demos: it reads the files each run writes and starts runs through the same CLI. It needs no frontend code, and Streamlit's headless `AppTest` lets it be tested like the rest.
 - *Later option (not in the plan):* a FastAPI wrapper (`POST /investigations`) for the "alert webhook" story.
 
 **ADR-16 Config: YAML validated by Pydantic.**

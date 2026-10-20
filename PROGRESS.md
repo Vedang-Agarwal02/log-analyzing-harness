@@ -37,9 +37,11 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 5.7 Scheduler
 - [x] 5.8 Coordinator
 - [x] 5.9 Baseline, Markdown report & runtime
-- [ ] 5.10 CLI
+- [x] 5.10 CLI
 - [ ] 5.11 Integration tests
 - [ ] 5.12 Architecture tests
+- [ ] 5.13 Demo UI data layer & CLI hooks
+- [ ] 5.14 Demo UI page
 - [ ] 6.1 Ground truth & scoring
 - [ ] 6.2 Pricing
 - [ ] 6.3 Eval runner
@@ -93,3 +95,6 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - 2026-10-20: 5.7 done. test_orchestrator_scheduler.py: 5 passed.
 - 2026-10-20: 5.8 done. test_coordinator.py: 1 passed (the full pipeline test runs against the scripted agents in tests/fakes.py).
 - 2026-10-20: 5.9 done. test_runtime_and_baseline.py: 5 passed.
+- 2026-10-20: Plan updated in docs/design/: new Tasks 5.13 and 5.14 add a plain Streamlit demo UI (do them after 5.12). Task 5.13 replaces cli.py with Task 5.10's version plus `investigate --run-id` and an `ui` command. Milestone 5 now ends after 5.14.
+- 2026-10-20: 5.10 done (Steps 1-4, 6). test_cli.py: 6 passed; full suite 209 passed; mypy clean. cli.py had been written by an earlier interrupted session; it matches the plan apart from ruff formatting. Step 5 (live smoke run) is waiting for the person to run it with Gemini.
+- TYPE-IGNORE: src/investigator/cli.py:95 and :282 `[arg-type]` (`system` is a str validated at runtime; ruff format moved the plan's trailing comment, so it now sits on the `system=system,` line).

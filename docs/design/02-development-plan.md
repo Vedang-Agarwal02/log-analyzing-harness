@@ -15,7 +15,7 @@
 Every task implicitly includes these rules.
 
 - Python `>=3.12` is required; develop and test on **3.14** (`.python-version` contains `3.14`).
-- Runtime dependencies, exactly these and no others: `anthropic>=1.15,<2`, `pydantic>=2.14,<3`, `pyyaml>=6.0.3,<7`, `typer>=0.27,<1`, `rich>=15,<16`, and `google-genai>=2.28,<3` (added in Task 3.10 with `uv add`). Optional extra `mcp`: `mcp>=1.30,<2`.
+- Runtime dependencies, exactly these and no others: `anthropic>=1.15,<2`, `pydantic>=2.14,<3`, `pyyaml>=6.0.3,<7`, `typer>=0.27,<1`, `rich>=15,<16`, and `google-genai>=2.28,<3` (added in Task 3.10 with `uv add`). Optional extras: `mcp`: `mcp>=1.30,<2`; `ui`: `streamlit>=1.64,<2` (added in Task 5.13, which also adds it to the dev group so the UI tests run).
 - Dev dependencies: `pytest>=9.1,<10`, `pytest-asyncio>=1.4,<2`, `ruff>=0.17,<0.18`, `mypy>=2.4,<3`, `types-PyYAML>=6.0`.
 - Default model id: `claude-opus-5-5`, used for every agent and the baseline. Never append a date suffix to a model id. Model ids starting with `gemini-` (e.g. `gemini-4-argon`) run on Gemini instead (Task 3.10).
 - Never send `temperature`, `top_p`, `top_k`, `thinking: {type: "disabled"}`, `budget_tokens`, or a forced `tool_choice` (`any`/`tool`). All of these return HTTP 400 on Claude Opus 5.5. The Gemini adapter also leaves sampling parameters at their defaults.
@@ -83,6 +83,7 @@ These are the conditions most likely to break the software in real use that ordi
 | Limits (defaults) | 3 rounds; 4 parallel tasks; 12 tasks total; 2 attempts per task; 3 attempts per tool call; tool timeout 8 s; budget 1.5M tokens / 80 LLM calls / 120 tool calls / 900 s, with a reporter reserve of 150K tokens / 8 calls / 120 s |
 | Effort | planner, observability, dependency, reporter: `medium`; reasoning, critic, single_agent: `high` |
 | Streaming | `messages.stream(...)` + `get_final_message()`, `max_tokens` 32000 |
+| Demo UI | Plain Streamlit page (`investigator ui`) that reads run files and starts runs through the CLI. No styling work: it is for showing runs, files and failures |
 | LLM providers | Chosen from the model id by `harness/routing.py`: `claude-*` → Anthropic client (default `claude-opus-5-5`), `gemini-*` → Gemini client (`generateContent` through `google-genai`). Per-agent `model` entries in `config/agents.yaml` may mix providers |
 | Scenarios | 12: `INC-01` … `INC-12` |
 
@@ -111,6 +112,7 @@ incident-investigator/
 │   ├── orchestrator/ policies.py scheduler.py outcome.py coordinator.py
 │   ├── baseline/     single_agent.py
 │   ├── reporting/    markdown.py
+│   ├── ui/           data.py app.py   # demo UI (Tasks 5.13–5.14)
 │   └── evaluation/   ground_truth.py scoring.py pricing.py runner.py summary.py
 ├── tests/  conftest.py  fakes.py  unit/  integration/  architecture/  live/  cassettes/
 ├── scripts/render_note.py            # fills the technical note from eval results
@@ -128,7 +130,7 @@ incident-investigator/
 | M2 Dataset | 2.1 Scenario spec · 2.2 Platform model & platform.yaml · 2.3 Generator · 2.4 Scenarios INC-01–06 · 2.5 Scenarios INC-07–12 |
 | M3 Harness | 3.1 Neutral modules & LLM types · 3.2 Schema & tools · 3.3 Retry & budget · 3.4 Hooks & tracing · 3.5 Tool executor · 3.6 Scripted LLM · 3.7 Agent loop · 3.8 Anthropic client · 3.9 Recording client · 3.10 Gemini client & provider routing |
 | M4 Backends & tools | 4.1 Backend ports · 4.2 Analysis helpers · 4.3 Simulated backends · 4.4 Fault injector · 4.5 Log & metric tools · 4.6 Change, topology, history, evidence tools & registry |
-| M5 Agents & orchestration | 5.1 Prompts · 5.2 Settings & config · 5.3 Output tools & validators · 5.4 Agent catalog · 5.5 Context builders · 5.6 Policies · 5.7 Scheduler · 5.8 Coordinator · 5.9 Baseline, Markdown report & runtime · 5.10 CLI · 5.11 Integration tests · 5.12 Architecture tests |
+| M5 Agents & orchestration | 5.1 Prompts · 5.2 Settings & config · 5.3 Output tools & validators · 5.4 Agent catalog · 5.5 Context builders · 5.6 Policies · 5.7 Scheduler · 5.8 Coordinator · 5.9 Baseline, Markdown report & runtime · 5.10 CLI · 5.11 Integration tests · 5.12 Architecture tests · 5.13 Demo UI data & CLI hooks · 5.14 Demo UI page |
 | M6 Evaluation | 6.1 Ground truth & scoring · 6.2 Pricing · 6.3 Eval runner · 6.4 Summary & eval CLI · 6.5 Cassettes, replay test & live smoke |
 | M7 Delivery | 7.1 Docs · 7.2 README · 7.3 Docker & CI · 7.4 Full eval, technical note, transcripts |
 | M8 Optional | 8.1 MCP toolset adapter · 8.2 Critic ablation run |
@@ -377,6 +379,8 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [ ] 5.10 CLI
 - [ ] 5.11 Integration tests
 - [ ] 5.12 Architecture tests
+- [ ] 5.13 Demo UI data layer & CLI hooks
+- [ ] 5.14 Demo UI page
 - [ ] 6.1 Ground truth & scoring
 - [ ] 6.2 Pricing
 - [ ] 6.3 Eval runner
@@ -15162,7 +15166,7 @@ def test_simulated_backends_never_open_ground_truth(repo_root: Path) -> None:
 Run: `uv run pytest tests/architecture -q`
 Expected: `5 passed`
 
-- [ ] **Step 3: Milestone check and commit**
+- [ ] **Step 3: Full check and commit**
 
 Run: `uv run pytest -q && uv run ruff check . && uv run mypy`
 Expected: every test passes, ruff prints `All checks passed!`, and mypy succeeds (apply the type-ignore rule if needed).
@@ -15170,6 +15174,1444 @@ Expected: every test passes, ruff prints `All checks passed!`, and mypy succeeds
 ```bash
 git add -A
 git commit -m "test: architecture guards against ground-truth leakage and layer violations"
+```
+
+---
+
+### Task 5.13: Demo UI, part 1: data layer and CLI hooks
+
+The demo UI is a deliberately plain web page for showing the system to people. It lists every run and every file a run writes, shows what failed in a run, and starts new runs from a built-in scenario or from an incident and log lines you type in. This task builds everything that can be tested without a browser. Task 5.14 adds the page itself.
+
+**Files:**
+- Modify: `pyproject.toml` and `uv.lock` (through `uv add`)
+- Replace: `Makefile` (adds a `ui` target), `src/investigator/cli.py` (adds `investigate --run-id` and the `ui` command)
+- Create: `src/investigator/ui/__init__.py` (empty), `src/investigator/ui/data.py`
+- Test: `tests/unit/test_ui_data.py`, `tests/integration/test_cli_ui.py`
+
+**Interfaces:**
+- Consumes:
+  - The files `run_investigation` writes into a run folder (Task 5.9): `trace.jsonl`, `report.json`, `report.md`, `metrics.json`, `evidence.json`, `state.json`
+  - Evaluation folders (Tasks 6.3–6.4); `IncidentReport` (1.2); `SimulatedDataset` (4.3); `tests.fakes` (5.8)
+- Produces (`investigator.ui.data`, no Streamlit import):
+  - `RunInfo` with `.label`
+  - Reading: `read_jsonl`, `read_json`, `run_info`, `find_runs(roots)`, `find_evaluations(root)`, `run_files`, `file_kind`, `flatten`, `MAX_ROWS`
+  - Trace views: `problems(events)`, `timeline(events)`
+  - Custom incidents: `parse_log_lines(text, services)`, `telemetry_window(scenario_root)`, `make_custom_scenario(base_root, out_root, incident, extra_logs, *, keep_faults)`, `write_custom_config(path, base_config, datasets_dir)`
+  - `investigate_command(*, scenario, system, run_id, model="", config=None, replay=None) -> list[str]`
+  - CLI: `investigator investigate --run-id ID` and `investigator ui [--port 8501]`
+
+Background:
+- The UI never runs the harness in its own process. It starts the same CLI command you would type, in the background, and follows the run by reading the run folder's `trace.jsonl` as it grows.
+- A custom incident is a new scenario folder under `runs/_custom/`: a copy of a built-in scenario's telemetry, your incident text, and your extra log lines. It has no `ground_truth.json`, so it is never scored.
+
+- [ ] **Step 1: Add Streamlit (optional `ui` extra, and the dev group so the tests can run)**
+
+Run: `uv add --optional ui "streamlit>=1.64,<2"`
+Then run: `uv add --dev "streamlit>=1.64,<2"`
+Expected: two `Resolved N packages` lines. `pyproject.toml` now lists `streamlit>=1.64,<2` under `[project.optional-dependencies]` (`ui`) and under `[dependency-groups]` (`dev`).
+
+- [ ] **Step 2: Write the failing tests**
+
+#### File: `tests/unit/test_ui_data.py`
+```python
+import asyncio
+import json
+from pathlib import Path
+
+from investigator.backends.simulated import SimulatedDataset
+from investigator.domain.common import iso
+from investigator.domain.incident import IncidentReport
+from investigator.runtime import load_incident, run_investigation
+from investigator.settings import Settings, load_settings
+from investigator.ui import data
+from tests.fakes import observability, standard_llm
+
+
+def _failing_run(settings: Settings, root: Path) -> Path:
+    """A scripted INC-07 run whose logs backend is down, so the trace contains failed tool calls."""
+    run_dir = root / "runs" / "demo-run"
+    llm = standard_llm(observability=observability(service="risk-service"))
+    asyncio.run(
+        run_investigation(
+            scenario_id="INC-07",
+            system="multi",
+            settings=settings,
+            llm=llm,
+            run_dir=run_dir,
+            run_id="demo-run",
+        )
+    )
+    return run_dir
+
+
+def test_find_runs_reads_status_counts_problems_and_files(
+    test_settings: Settings, tmp_path: Path
+) -> None:
+    run_dir = _failing_run(test_settings, tmp_path)
+    [run] = data.find_runs([tmp_path / "runs", tmp_path / "missing"])
+    assert (run.run_id, run.scenario, run.system, run.finished) == (
+        "demo-run",
+        "INC-07",
+        "multi",
+        True,
+    )
+    assert run.llm_calls > 0 and run.tool_calls > 0 and run.problems >= 1
+    rows = data.problems(data.read_jsonl(run_dir / "trace.jsonl"))
+    assert any(
+        row["kind"] == "tool error"
+        and "query_logs" in row["where"]
+        and "unavailable" in row["detail"]
+        for row in rows
+    )
+    names = {path.name for path in data.run_files(run_dir)}
+    assert {
+        "report.md",
+        "report.json",
+        "trace.jsonl",
+        "metrics.json",
+        "evidence.json",
+        "state.json",
+    } <= names
+
+
+def test_timeline_and_problems_describe_each_event() -> None:
+    events = [
+        {"ts": 10.0, "type": "phase", "name": "planning", "round": 1, "run_id": "r"},
+        {
+            "ts": 11.5,
+            "type": "tool_call",
+            "agent": "observability",
+            "task_id": "R1-T1",
+            "tool": "query_logs",
+            "ok": False,
+            "error_type": "timeout",
+            "attempts": 3,
+            "arguments": {"service": "a"},
+        },
+        {"ts": 12.0, "type": "fallback", "component": "reporter"},
+    ]
+    rows = data.timeline(events)
+    assert rows[0] == {
+        "t_s": 0.0,
+        "type": "phase",
+        "agent": "",
+        "task": "",
+        "detail": "planning (round 1)",
+    }
+    assert rows[1]["t_s"] == 1.5 and rows[1]["detail"].startswith("query_logs timeout x3")
+    assert [row["kind"] for row in data.problems(events)] == ["tool error", "fallback"]
+    assert data.flatten([{"a": {"b": 1}, "c": "x"}]) == [{"a": '{"b": 1}', "c": "x"}]
+    assert [data.file_kind(Path(name)) for name in ("r.md", "r.json", "t.jsonl", "x.log")] == [
+        "markdown",
+        "json",
+        "jsonl",
+        "text",
+    ]
+
+
+def test_parse_log_lines_accepts_valid_lines_and_explains_bad_ones() -> None:
+    text = "\n".join(
+        [
+            "2026-03-10T10:05:00Z error orders-service Payment call timed out after 30s",
+            "",
+            "# a comment",
+            "too short",
+            "yesterday INFO orders-service x",
+            "2026-03-10T10:06:00Z TRACE orders-service x",
+            "2026-03-10T10:07:00Z INFO nope-service x",
+        ]
+    )
+    records, errors = data.parse_log_lines(text, {"orders-service"})
+    assert len(records) == 1 and records[0]["log_id"].startswith("log-")
+    assert {key: records[0][key] for key in ("ts", "service", "level", "message")} == {
+        "ts": "2026-03-10T10:05:00Z",
+        "service": "orders-service",
+        "level": "ERROR",
+        "message": "Payment call timed out after 30s",
+    }
+    assert [error.split(":")[0] for error in errors] == ["line 4", "line 5", "line 6", "line 7"]
+
+
+def test_custom_scenario_is_a_loadable_unscored_dataset(
+    generated_root: Path, tmp_path: Path
+) -> None:
+    base = generated_root / "INC-01"
+    original = load_incident(base)
+    incident = IncidentReport.model_validate(
+        {**original.model_dump(), "incident_id": "CUSTOM-1", "title": "Checkout is slow"}
+    )
+    logs, errors = data.parse_log_lines(
+        f"{iso(original.reported_at)} ERROR orders-service Custom demo failure", {"orders-service"}
+    )
+    root = data.make_custom_scenario(base, tmp_path / "datasets", incident, logs, keep_faults=False)
+    assert root == tmp_path / "datasets" / "CUSTOM-1" and errors == []
+    assert load_incident(root).title == "Checkout is slow"
+    assert not (root / "ground_truth.json").exists()
+    assert json.loads((root / "environment" / "faults.json").read_text()) == {"faults": []}
+    dataset = SimulatedDataset.load(root / "telemetry")
+    assert any(record.message == "Custom demo failure" for record in dataset.logs["orders-service"])
+    start, end = data.telemetry_window(root)
+    assert start < iso(original.reported_at) < end
+
+
+def test_custom_config_and_cli_command(repo_root: Path, tmp_path: Path) -> None:
+    config = data.write_custom_config(
+        tmp_path / "config.yaml", repo_root / "config" / "default.yaml", tmp_path / "datasets"
+    )
+    loaded = load_settings(config)
+    assert (
+        loaded.datasets_dir == str(tmp_path / "datasets") and loaded.llm.model == "claude-opus-5-5"
+    )
+    command = data.investigate_command(
+        scenario="INC-02", system="single", run_id="r1", model="gemini-4-argon", config=config
+    )
+    assert command[1:4] == ["-m", "investigator.cli", "investigate"]
+    assert (
+        command[command.index("--run-id") + 1] == "r1"
+        and command[command.index("--model") + 1] == "gemini-4-argon"
+    )
+    assert "--replay" not in data.investigate_command(
+        scenario="INC-01", system="multi", run_id="r2"
+    )
+```
+
+#### File: `tests/integration/test_cli_ui.py`
+```python
+import asyncio
+import subprocess
+from pathlib import Path
+from typing import Any
+
+import pytest
+from typer.testing import CliRunner
+
+from investigator.cli import app
+from investigator.harness.recording import RecordingLLM
+from investigator.runtime import run_investigation
+from investigator.settings import Settings
+from tests.fakes import standard_llm
+
+runner = CliRunner()
+
+
+def test_investigate_accepts_a_run_id(test_settings: Settings, tmp_path: Path) -> None:
+    cassette = tmp_path / "INC-01-multi.json"
+    recorder = RecordingLLM(cassette, mode="record", inner=standard_llm())
+    asyncio.run(
+        run_investigation(
+            scenario_id="INC-01", system="multi", settings=test_settings, llm=recorder, run_dir=None
+        )
+    )
+    config = tmp_path / "config.yaml"
+    config.write_text(
+        f"llm: {{model: scripted}}\ndatasets_dir: {test_settings.datasets_dir}\nruns_dir: {tmp_path / 'runs'}\n",
+        encoding="utf-8",
+    )
+    args = [
+        "investigate",
+        "--scenario",
+        "INC-01",
+        "--replay",
+        str(cassette),
+        "--config",
+        str(config),
+        "--run-id",
+        "demo-1",
+    ]
+    result = runner.invoke(app, args)
+    assert result.exit_code == 0, result.output
+    assert (tmp_path / "runs" / "demo-1" / "report.md").exists()
+
+
+def test_ui_command_starts_streamlit_on_the_app(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[list[str]] = []
+
+    def fake_call(command: list[str], **kwargs: Any) -> int:
+        calls.append(command)
+        return 0
+
+    monkeypatch.setattr(subprocess, "call", fake_call)
+    result = runner.invoke(app, ["ui", "--port", "8600"])
+    assert result.exit_code == 0, result.output
+    [command] = calls
+    assert command[1:4] == ["-m", "streamlit", "run"] and Path(command[4]).name == "app.py"
+    assert Path(command[4]).exists() and command[-2:] == ["--server.port", "8600"]
+```
+
+- [ ] **Step 3: Run the tests to verify they fail**
+
+Run: `uv run pytest tests/unit/test_ui_data.py tests/integration/test_cli_ui.py -q`
+Expected: FAIL with `ModuleNotFoundError: No module named 'investigator.ui'`
+
+- [ ] **Step 4: Write the implementation**
+
+Create `src/investigator/ui/__init__.py` as an empty file:
+
+```bash
+mkdir -p src/investigator/ui && : > src/investigator/ui/__init__.py
+```
+
+#### File: `src/investigator/ui/data.py`
+```python
+"""Read-only helpers behind the demo UI. Everything here works on files the harness already writes.
+
+This module does not import Streamlit, so it is unit-tested like the rest of the code.
+"""
+
+import hashlib
+import json
+import shutil
+import sys
+from dataclasses import dataclass
+from datetime import timedelta
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+from investigator.domain.common import LOG_LEVELS, iso, parse_iso
+from investigator.domain.incident import IncidentReport
+
+MAX_ROWS = 2000
+
+
+@dataclass(frozen=True)
+class RunInfo:
+    path: Path
+    run_id: str
+    scenario: str
+    system: str
+    status: str
+    termination: str
+    model: str
+    llm_calls: int
+    tool_calls: int
+    problems: int
+    wall_s: float
+    finished: bool
+
+    @property
+    def label(self) -> str:
+        state = self.status if self.finished else "running"
+        return f"{self.run_id} | {self.system} | {state}"
+
+
+def read_jsonl(path: Path) -> list[dict[str, Any]]:
+    """Rows of a JSONL file; unreadable lines (e.g. one being written right now) are skipped."""
+    if not path.exists():
+        return []
+    rows: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(value, dict):
+            rows.append(value)
+    return rows
+
+
+def read_json(path: Path) -> Any:
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+
+
+def problems(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Everything that went wrong in a run, in order: tool errors, LLM errors, failed tasks, fallbacks, crashes."""
+    start = float(events[0].get("ts", 0.0)) if events else 0.0
+    rows: list[dict[str, Any]] = []
+    for event in events:
+        kind = event.get("type")
+        row = {
+            "t_s": round(float(event.get("ts", start)) - start, 1),
+            "task": event.get("task_id") or "",
+        }
+        if kind == "tool_call" and not event.get("ok"):
+            detail = f"{event.get('error_type')} after {event.get('attempts')} attempt(s)"
+            rows.append(
+                row
+                | {
+                    "kind": "tool error",
+                    "where": f"{event.get('agent')} -> {event.get('tool')}",
+                    "detail": detail,
+                }
+            )
+        elif kind == "llm_error":
+            rows.append(
+                row
+                | {
+                    "kind": "LLM error",
+                    "where": str(event.get("agent")),
+                    "detail": str(event.get("error")),
+                }
+            )
+        elif kind == "llm_call" and event.get("fallback_used"):
+            detail = f"answered by {event.get('served_model')}"
+            rows.append(
+                row | {"kind": "model fallback", "where": str(event.get("agent")), "detail": detail}
+            )
+        elif kind == "task_end" and event.get("status") == "failed":
+            rows.append(
+                row
+                | {
+                    "kind": "task failed",
+                    "where": str(event.get("task_id")),
+                    "detail": str(event.get("error")),
+                }
+            )
+        elif kind == "fallback":
+            detail = str(event.get("error") or "deterministic fallback used")
+            rows.append(
+                row | {"kind": "fallback", "where": str(event.get("component")), "detail": detail}
+            )
+        elif kind == "error":
+            last_line = str(event.get("error", "")).strip().splitlines()[-1:] or [""]
+            rows.append(
+                row
+                | {
+                    "kind": "caught crash",
+                    "where": str(event.get("component")),
+                    "detail": last_line[0],
+                }
+            )
+    return rows
+
+
+def _detail(event: dict[str, Any]) -> str:
+    kind = event.get("type")
+    if kind == "llm_call":
+        usage = event.get("usage") or {}
+        prompt = sum(
+            int(usage.get(key, 0))
+            for key in ("input_tokens", "cache_read_tokens", "cache_write_tokens")
+        )
+        calls = ", ".join(event.get("tool_calls") or []) or "no tool calls"
+        return f"{event.get('served_model')} stop={event.get('stop_reason')} in={prompt} out={usage.get('output_tokens', 0)} -> {calls}"
+    if kind == "tool_call":
+        outcome = "ok" if event.get("ok") else f"{event.get('error_type')} x{event.get('attempts')}"
+        return f"{event.get('tool')} {outcome} {json.dumps(event.get('arguments') or {}, sort_keys=True)}"[
+            :300
+        ]
+    if kind == "phase":
+        return f"{event.get('name')} (round {event.get('round')})"
+    skip = {"ts", "type", "run_id", "agent", "task_id"}
+    return json.dumps(
+        {key: value for key, value in event.items() if key not in skip}, sort_keys=True, default=str
+    )[:300]
+
+
+def timeline(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    start = float(events[0].get("ts", 0.0)) if events else 0.0
+    return [
+        {
+            "t_s": round(float(event.get("ts", start)) - start, 1),
+            "type": str(event.get("type")),
+            "agent": str(event.get("agent") or event.get("component") or ""),
+            "task": str(event.get("task_id") or ""),
+            "detail": _detail(event),
+        }
+        for event in events
+    ]
+
+
+def run_info(path: Path, root: Path) -> RunInfo:
+    events = read_jsonl(path / "trace.jsonl")
+    start = next((event for event in events if event.get("type") == "run_start"), {})
+    report = read_json(path / "report.json") or {}
+    metrics = read_json(path / "metrics.json") or {}
+    system = str(start.get("system") or report.get("system") or "?").removesuffix("_agent")
+    return RunInfo(
+        path=path,
+        run_id=str(path.relative_to(root)),
+        scenario=str(start.get("incident_id") or report.get("incident_id") or "?"),
+        system=system,
+        status=str(report.get("status") or "no report"),
+        termination=str(report.get("termination_reason") or ""),
+        model=str(start.get("model") or "?"),
+        llm_calls=int(
+            metrics.get("llm_calls")
+            or sum(1 for event in events if event.get("type") == "llm_call")
+        ),
+        tool_calls=int(
+            metrics.get("tool_calls")
+            or sum(1 for event in events if event.get("type") == "tool_call")
+        ),
+        problems=len(problems(events)),
+        wall_s=float(metrics.get("wall_s") or 0.0),
+        finished=(path / "report.json").exists(),
+    )
+
+
+def find_runs(roots: list[Path]) -> list[RunInfo]:
+    """Every directory under the roots that holds a trace.jsonl, newest first."""
+    runs: list[RunInfo] = []
+    for root in roots:
+        if not root.exists():
+            continue
+        traces = sorted(
+            root.rglob("trace.jsonl"), key=lambda trace: trace.stat().st_mtime, reverse=True
+        )
+        runs.extend(run_info(trace.parent, root) for trace in traces)
+    return runs
+
+
+def find_evaluations(root: Path) -> list[Path]:
+    if not root.exists():
+        return []
+    found = [
+        path
+        for path in root.iterdir()
+        if (path / "results.jsonl").exists() or (path / "results.md").exists()
+    ]
+    return sorted(found, key=lambda path: path.stat().st_mtime, reverse=True)
+
+
+def run_files(run_dir: Path) -> list[Path]:
+    return sorted(path for path in run_dir.iterdir() if path.is_file())
+
+
+def file_kind(path: Path) -> str:
+    return {".md": "markdown", ".json": "json", ".jsonl": "jsonl"}.get(path.suffix, "text")
+
+
+def flatten(rows: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """Table-friendly rows: nested values become compact JSON strings."""
+    flat: list[dict[str, str]] = []
+    for row in rows[:MAX_ROWS]:
+        flat.append(
+            {
+                key: value
+                if isinstance(value, str)
+                else json.dumps(value, sort_keys=True, default=str)
+                for key, value in row.items()
+            }
+        )
+    return flat
+
+
+def parse_log_lines(text: str, services: set[str]) -> tuple[list[dict[str, Any]], list[str]]:
+    """Parse lines of the form `TIMESTAMP LEVEL SERVICE message`, e.g. `2026-03-10T10:05:00Z ERROR orders-service Boom`."""
+    records: list[dict[str, Any]] = []
+    errors: list[str] = []
+    for number, raw in enumerate(text.splitlines(), start=1):
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split(maxsplit=3)
+        if len(parts) < 4:
+            errors.append(f"line {number}: expected 'TIMESTAMP LEVEL SERVICE message'")
+            continue
+        stamp, level, service, message = parts
+        try:
+            ts = parse_iso(stamp)
+        except ValueError:
+            errors.append(
+                f"line {number}: bad timestamp {stamp!r}; use ISO 8601 such as 2026-03-10T10:05:00Z"
+            )
+            continue
+        if level.upper() not in LOG_LEVELS:
+            errors.append(f"line {number}: level must be one of {', '.join(LOG_LEVELS)}")
+            continue
+        if service not in services:
+            errors.append(f"line {number}: unknown service {service!r}")
+            continue
+        digest = hashlib.sha1(f"custom|{number}|{line}".encode()).hexdigest()[:10]
+        records.append(
+            {
+                "log_id": f"log-{digest}",
+                "ts": iso(ts),
+                "service": service,
+                "level": level.upper(),
+                "message": message,
+            }
+        )
+    return records, errors
+
+
+def telemetry_window(scenario_root: Path) -> tuple[str, str]:
+    """First and last timestamp covered by a scenario's telemetry; custom log lines must fall inside."""
+    metrics = read_json(scenario_root / "telemetry" / "metrics.json") or {}
+    start = parse_iso(str(metrics["start"]))
+    end = start + timedelta(seconds=int(metrics["step_seconds"]) * int(metrics["points"]))
+    return iso(start), iso(end)
+
+
+def write_custom_config(path: Path, base_config: Path, datasets_dir: Path) -> Path:
+    """A copy of the normal config whose datasets_dir points at the custom scenario folder."""
+    data = (
+        dict(yaml.safe_load(base_config.read_text(encoding="utf-8")) or {})
+        if base_config.exists()
+        else {}
+    )
+    data["datasets_dir"] = str(datasets_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.safe_dump(data, sort_keys=True), encoding="utf-8")
+    return path
+
+
+def make_custom_scenario(
+    base_root: Path,
+    out_root: Path,
+    incident: IncidentReport,
+    extra_logs: list[dict[str, Any]],
+    *,
+    keep_faults: bool,
+) -> Path:
+    """Build a scenario folder from a base scenario's telemetry plus your incident text and extra log lines.
+
+    It has no ground_truth.json, so custom runs are never scored.
+    """
+    target = out_root / incident.incident_id
+    if target.exists():
+        shutil.rmtree(target)
+    shutil.copytree(base_root / "telemetry", target / "telemetry")
+    (target / "environment").mkdir(parents=True)
+    faults = base_root / "environment" / "faults.json"
+    fault_text = (
+        faults.read_text(encoding="utf-8")
+        if keep_faults and faults.exists()
+        else '{"faults": []}\n'
+    )
+    (target / "environment" / "faults.json").write_text(fault_text, encoding="utf-8")
+    (target / "incident.json").write_text(incident.model_dump_json(indent=1), encoding="utf-8")
+    if extra_logs:
+        with (target / "telemetry" / "logs.jsonl").open("a", encoding="utf-8") as handle:
+            for record in extra_logs:
+                handle.write(json.dumps(record, sort_keys=True) + "\n")
+    return target
+
+
+def investigate_command(
+    *,
+    scenario: str,
+    system: str,
+    run_id: str,
+    model: str = "",
+    config: Path | None = None,
+    replay: Path | None = None,
+) -> list[str]:
+    """The exact CLI call the UI runs in the background, so a demo uses the same harness as the terminal."""
+    command = [
+        sys.executable,
+        "-m",
+        "investigator.cli",
+        "investigate",
+        "--scenario",
+        scenario,
+        "--system",
+        system,
+        "--run-id",
+        run_id,
+    ]
+    if model:
+        command += ["--model", model]
+    if config is not None:
+        command += ["--config", str(config)]
+    if replay is not None:
+        command += ["--replay", str(replay)]
+    return command
+```
+
+Replace `src/investigator/cli.py` with the full content below. It is Task 5.10's file plus the `--run-id` option on `investigate` and the new `ui` command. If `PROGRESS.md` logs a `PLAN-FIX` for `cli.py`, apply it again after replacing the file.
+
+#### File: `src/investigator/cli.py`
+```python
+"""Command-line interface: generate data, investigate, evaluate, record cassettes, inspect traces, demo UI."""
+
+import asyncio
+import json
+import subprocess
+import sys
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Annotated, Any
+
+import typer
+from rich.console import Console
+from rich.markup import escape
+from rich.table import Table
+from rich.tree import Tree
+
+from investigator.datagen.generate import generate_all
+from investigator.runtime import build_llm, list_scenarios, new_run_id, run_investigation
+from investigator.settings import Settings, load_settings, project_root
+
+app = typer.Typer(
+    add_completion=False, no_args_is_help=True, help="Multi-agent production incident investigator."
+)
+console = Console()
+
+ConfigOption = Annotated[
+    Path | None,
+    typer.Option("--config", help="Path to a YAML config (default: config/default.yaml)"),
+]
+ModelOption = Annotated[
+    str | None,
+    typer.Option("--model", help="Model id override, e.g. claude-haiku-5-5 or gemini-4-argon"),
+]
+
+
+def _settings(config: Path | None, model: str | None = None, no_critic: bool = False) -> Settings:
+    overrides: dict[str, Any] = {}
+    if model:
+        overrides["llm"] = {"model": model}
+    if no_critic:
+        overrides["investigation"] = {"critic_enabled": False}
+    return load_settings(config, overrides)
+
+
+@app.command("generate-data")
+def generate_data() -> None:
+    """Generate datasets/generated/ from datasets/scenarios/*.yaml (deterministic)."""
+    root = project_root()
+    scenarios = root / "datasets" / "scenarios"
+    for path in generate_all(
+        scenarios, root / "datasets" / "platform.yaml", root / "datasets" / "generated"
+    ):
+        console.print(f"generated {path.relative_to(root)}")
+
+
+@app.command("list-scenarios")
+def list_scenarios_command(config: ConfigOption = None) -> None:
+    """List generated scenarios and their titles."""
+    settings = _settings(config)
+    for scenario_id in list_scenarios(settings):
+        incident = json.loads(
+            (settings.path(settings.datasets_dir) / scenario_id / "incident.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        console.print(f"{scenario_id}  {escape(incident['title'])}")
+
+
+@app.command()
+def investigate(
+    scenario: Annotated[str, typer.Option(help="Scenario id, e.g. INC-01")] = "INC-01",
+    system: Annotated[
+        str, typer.Option(help="'multi' (six agents) or 'single' (baseline)")
+    ] = "multi",
+    model: ModelOption = None,
+    config: ConfigOption = None,
+    record: Annotated[
+        Path | None, typer.Option(help="Record LLM responses to this cassette file")
+    ] = None,
+    replay: Annotated[
+        Path | None, typer.Option(help="Replay LLM responses from this cassette (offline)")
+    ] = None,
+    no_critic: Annotated[
+        bool, typer.Option("--no-critic", help="Ablation: skip the critic loop")
+    ] = False,
+    run_id: Annotated[
+        str | None, typer.Option("--run-id", help="Use this run id instead of a generated one")
+    ] = None,
+) -> None:
+    """Run one investigation; writes report.md, report.json and trace.jsonl under runs/."""
+    if system not in ("multi", "single"):
+        raise typer.BadParameter("system must be 'multi' or 'single'")
+    settings = _settings(config, model, no_critic)
+    run_id = run_id or new_run_id(scenario, system)
+    run_dir = settings.path(settings.runs_dir) / run_id
+    llm = build_llm(settings, record=record, replay=replay)
+    outcome = asyncio.run(
+        run_investigation(
+            scenario_id=scenario,
+            system=system,
+            settings=settings,
+            llm=llm,
+            run_dir=run_dir,
+            run_id=run_id,
+        )  # type: ignore[arg-type]
+    )
+    report = outcome.report
+    usage = outcome.metrics.usage
+    table = Table(title=f"{scenario} ({system})")
+    table.add_column("Field")
+    table.add_column("Value")
+    table.add_row("Status", report.status)
+    table.add_row("Termination", report.termination_reason)
+    if report.hypotheses:
+        top = report.hypotheses[0]
+        table.add_row(
+            "Top hypothesis",
+            escape(
+                f"{top.title} [{top.root_cause_service} / {top.category}] ({top.confidence:.2f})"
+            ),
+        )
+    table.add_row(
+        "LLM calls / tool calls", f"{outcome.metrics.llm_calls} / {outcome.metrics.tool_calls}"
+    )
+    table.add_row(
+        "Input tokens (incl. cache) / output",
+        f"{usage.input_tokens + usage.cache_read_tokens + usage.cache_write_tokens} / {usage.output_tokens}",
+    )
+    table.add_row("Wall-clock", f"{outcome.metrics.wall_s:.1f}s")
+    table.add_row("Report", str(run_dir / "report.md"))
+    console.print(table)
+
+
+@app.command("show-trace")
+def show_trace(
+    run_dir: Annotated[Path, typer.Argument(help="A run directory containing trace.jsonl")],
+) -> None:
+    """Print a run's trace as a tree of phases, tasks, LLM calls and tool calls."""
+    lines = (run_dir / "trace.jsonl").read_text(encoding="utf-8").splitlines()
+    events = [json.loads(line) for line in lines if line.strip()]
+    tree = Tree(escape(f"run {events[0]['run_id'] if events else '?'}"))
+    branch = tree
+    for event in events:
+        kind = event["type"]
+        if kind == "phase":
+            branch = tree.add(escape(f"{event['name']} (round {event.get('round')})"))
+        elif kind == "llm_call":
+            usage = event["usage"]
+            prompt = (
+                usage["input_tokens"] + usage["cache_read_tokens"] + usage["cache_write_tokens"]
+            )
+            branch.add(
+                escape(
+                    f"llm {event['agent']} [{event.get('task_id') or '-'}] stop={event['stop_reason']} in={prompt} out={usage['output_tokens']} {event['latency_s']}s"
+                )
+            )
+        elif kind == "tool_call":
+            status = "ok" if event["ok"] else f"ERROR {event['error_type']}"
+            branch.add(
+                escape(
+                    f"tool {event['tool']} by {event['agent']} [{status}] attempts={event['attempts']}"
+                )
+            )
+        elif kind in (
+            "task_added",
+            "task_end",
+            "hypotheses",
+            "checks",
+            "critique",
+            "fallback",
+            "termination",
+            "error",
+        ):
+            details = {
+                key: value for key, value in event.items() if key not in ("ts", "type", "run_id")
+            }
+            branch.add(escape(f"{kind}: {json.dumps(details, default=str)[:240]}"))
+    console.print(tree)
+
+
+@app.command("eval")
+def eval_command(
+    scenarios: Annotated[str, typer.Option(help="'all' or comma-separated ids")] = "all",
+    systems: Annotated[str, typer.Option(help="Comma-separated: multi,single")] = "multi,single",
+    trials: Annotated[int | None, typer.Option(help="Trials per scenario and system")] = None,
+    concurrency: Annotated[int | None, typer.Option(help="Runs in parallel")] = None,
+    model: ModelOption = None,
+    out: Annotated[
+        Path | None, typer.Option(help="Results directory (resumes if it exists)")
+    ] = None,
+    config: ConfigOption = None,
+    yes: Annotated[bool, typer.Option("--yes", help="Skip the cost confirmation")] = False,
+    no_critic: Annotated[
+        bool, typer.Option("--no-critic", help="Ablation: multi-agent without the critic loop")
+    ] = False,
+    min_accuracy: Annotated[
+        float | None, typer.Option(help="Exit 2 if multi-agent accuracy is below this")
+    ] = None,
+) -> None:
+    """Run the evaluation (real API calls) and write results.jsonl, results.md and summary.json."""
+    from investigator.evaluation.pricing import estimate_cost_text
+    from investigator.evaluation.runner import run_eval
+    from investigator.evaluation.summary import write_summary
+
+    settings = _settings(config, model, no_critic)
+    scenario_ids = (
+        list_scenarios(settings)
+        if scenarios == "all"
+        else [s.strip() for s in scenarios.split(",") if s.strip()]
+    )
+    system_list = [s.strip() for s in systems.split(",") if s.strip()]
+    trial_count = trials or settings.evaluation.trials
+    parallel = concurrency or settings.evaluation.concurrency
+    out_dir = (
+        out
+        or settings.path("evals/results")
+        / f"{datetime.now(UTC):%Y%m%d-%H%M%S}-{settings.llm.model}"
+    )
+    runs = len(scenario_ids) * len(system_list) * trial_count
+    console.print(
+        f"{runs} runs on {settings.llm.model}: {len(scenario_ids)} scenarios x {len(system_list)} systems x {trial_count} trials"
+    )
+    console.print(estimate_cost_text(settings.llm.model, runs))
+    if not yes and not typer.confirm("This calls the real API and costs money. Continue?"):
+        raise typer.Exit(1)
+    llm = build_llm(settings)
+    asyncio.run(
+        run_eval(
+            scenario_ids=scenario_ids,
+            systems=system_list,
+            trials=trial_count,
+            settings=settings,
+            out_dir=out_dir,
+            concurrency=parallel,
+            llm_factory=lambda: llm,
+            progress=lambda message: console.print(escape(message)),
+        )
+    )
+    summary_path, summary = write_summary(out_dir)
+    console.print(f"results: {summary_path}")
+    if min_accuracy is not None:
+        accuracy = summary["systems"].get("multi", {}).get("rc_correct", {}).get("mean")
+        if accuracy is None or accuracy < min_accuracy:
+            console.print(f"quality gate failed: multi-agent accuracy {accuracy} < {min_accuracy}")
+            raise typer.Exit(2)
+
+
+@app.command()
+def summarize(
+    results_dir: Annotated[Path, typer.Argument(help="An eval results directory")],
+) -> None:
+    """Rebuild results.md and summary.json from results.jsonl."""
+    from investigator.evaluation.summary import write_summary
+
+    if not (results_dir / "results.jsonl").exists():
+        console.print(f"no results.jsonl in {results_dir}")
+        raise typer.Exit(1)
+    path, _ = write_summary(results_dir)
+    console.print(f"wrote {path}")
+
+
+@app.command("record-cassettes")
+def record_cassettes(
+    scenario: Annotated[str, typer.Option(help="Scenario to record")] = "INC-01",
+    systems: Annotated[str, typer.Option(help="Comma-separated: multi,single")] = "multi,single",
+    out_dir: Annotated[Path, typer.Option(help="Where cassettes are written")] = Path(
+        "tests/cassettes"
+    ),
+    model: ModelOption = None,
+    config: ConfigOption = None,
+    yes: Annotated[bool, typer.Option("--yes", help="Skip the confirmation")] = False,
+) -> None:
+    """Record real LLM responses for replay tests (calls the real API)."""
+    settings = _settings(config, model)
+    if not yes and not typer.confirm(
+        f"Record {systems} on {scenario} with {settings.llm.model}? This costs money."
+    ):
+        raise typer.Exit(1)
+    for system in [s.strip() for s in systems.split(",") if s.strip()]:
+        cassette = out_dir / f"{scenario}-{system}.json"
+        if cassette.exists():
+            cassette.unlink()
+        llm = build_llm(settings, record=cassette)
+        outcome = asyncio.run(
+            run_investigation(
+                scenario_id=scenario,
+                system=system,
+                settings=settings,
+                llm=llm,
+                run_dir=None,
+                run_id=f"record-{scenario}-{system}",
+            )  # type: ignore[arg-type]
+        )
+        console.print(f"recorded {cassette} ({outcome.report.status})")
+
+
+@app.command()
+def ui(port: Annotated[int, typer.Option(help="Port for the web UI")] = 8501) -> None:
+    """Open the demo UI: browse runs, their files and failures, and start new runs (needs Streamlit)."""
+    try:
+        import streamlit  # noqa: F401
+    except ImportError:
+        console.print("The UI needs Streamlit: run `uv sync --extra ui`.")
+        raise typer.Exit(1) from None
+    app_path = Path(__file__).parent / "ui" / "app.py"
+    command = [sys.executable, "-m", "streamlit", "run", str(app_path), "--server.port", str(port)]
+    raise typer.Exit(subprocess.call(command, cwd=project_root()))
+
+
+if __name__ == "__main__":
+    app()
+```
+
+#### File: `Makefile`
+```makefile
+.PHONY: setup data test lint format typecheck check run ui eval-smoke eval record
+
+setup:
+	uv sync
+
+data:
+	uv run investigator generate-data
+
+test:
+	uv run pytest
+
+lint:
+	uv run ruff check .
+	uv run ruff format --check .
+
+format:
+	uv run ruff format .
+	uv run ruff check --fix .
+
+typecheck:
+	uv run mypy
+
+check: lint typecheck test
+
+run:
+	uv run investigator investigate --scenario $(or $(SCENARIO),INC-01) --system $(or $(SYSTEM),multi)
+
+ui:
+	uv run investigator ui
+
+eval-smoke:
+	uv run investigator eval --scenarios INC-01,INC-10 --trials 1 --yes
+
+eval:
+	uv run investigator eval --trials 3
+
+record:
+	uv run investigator record-cassettes --scenario INC-01
+```
+
+- [ ] **Step 5: Run the tests to verify they pass**
+
+Run: `uv run pytest tests/unit/test_ui_data.py tests/integration/test_cli_ui.py -q`
+Expected: `7 passed`
+
+Run: `uv run pytest tests/integration/test_cli.py -q`
+Expected: `6 passed` (the replaced CLI still passes Task 5.10's tests)
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add -A
+git commit -m "feat(ui): run discovery, failure views, custom incidents and CLI hooks for the demo UI"
+```
+
+---
+
+### Task 5.14: Demo UI, part 2: the page
+
+**Files:**
+- Create: `src/investigator/ui/app.py`
+- Test: `tests/integration/test_ui_app.py`
+
+**Interfaces:**
+- Consumes: `investigator.ui.data` (5.13), `runtime.list_scenarios`, `runtime.load_incident`, `runtime.new_run_id` (5.9), `backends.simulated.load_services` (4.3), `settings.load_settings`, `settings.project_root` (5.2).
+- Produces: a Streamlit app with three tabs:
+  - **Run an incident:** a built-in scenario, or a custom incident with extra log lines. You choose multi or single agent, the model, and optionally a recorded run to replay. The run's trace is followed live.
+  - **Runs and files:** each run's status and counters, plus four sub-tabs: Report, Problems (failed tool calls, LLM errors, failed tasks, fallbacks, caught crashes), Timeline (filter by event type) and Files (every file in the run folder).
+  - **Evaluations:** `results.md`, `errors.jsonl` and `config.json` of each evaluation folder.
+- Tests can point the app at other folders through session state: `runs_root`, `evals_root`, `datasets_dir`.
+
+- [ ] **Step 1: Write the failing test**
+
+#### File: `tests/integration/test_ui_app.py`
+```python
+"""Headless tests of the Streamlit demo UI (no browser, no real background runs)."""
+
+import asyncio
+import json
+import subprocess
+from pathlib import Path
+from typing import Any
+
+import pytest
+from streamlit.testing.v1 import AppTest
+
+from investigator.domain.common import iso
+from investigator.runtime import load_incident, run_investigation
+from investigator.settings import Settings
+from tests.fakes import observability, standard_llm
+
+APP = Path(__file__).resolve().parents[2] / "src" / "investigator" / "ui" / "app.py"
+
+
+class FakeProcess:
+    def poll(self) -> int | None:
+        return None
+
+
+@pytest.fixture
+def started(monkeypatch: pytest.MonkeyPatch) -> list[list[str]]:
+    commands: list[list[str]] = []
+
+    def fake_popen(command: list[str], **kwargs: Any) -> FakeProcess:
+        commands.append(command)
+        return FakeProcess()
+
+    monkeypatch.setattr(subprocess, "Popen", fake_popen)
+    return commands
+
+
+def _app(test_settings: Settings, tmp_path: Path) -> AppTest:
+    app = AppTest.from_file(str(APP), default_timeout=60)
+    app.session_state["runs_root"] = str(tmp_path / "runs")
+    app.session_state["evals_root"] = str(tmp_path / "evals")
+    app.session_state["datasets_dir"] = test_settings.datasets_dir
+    return app
+
+
+def test_runs_and_evaluations_tabs_show_files_and_problems(
+    test_settings: Settings, tmp_path: Path
+) -> None:
+    llm = standard_llm(observability=observability(service="risk-service"))
+    asyncio.run(
+        run_investigation(
+            scenario_id="INC-07",
+            system="multi",
+            settings=test_settings,
+            llm=llm,
+            run_dir=tmp_path / "runs" / "demo-run",
+            run_id="demo-run",
+        )
+    )
+    evaluation = tmp_path / "evals" / "final-demo"
+    evaluation.mkdir(parents=True)
+    (evaluation / "results.md").write_text("# Evaluation results\n\nDemo table\n", encoding="utf-8")
+    (evaluation / "errors.jsonl").write_text(
+        json.dumps({"key": "INC-01|multi|1", "error_class": "timeout"}) + "\n", encoding="utf-8"
+    )
+    app = _app(test_settings, tmp_path).run()
+    assert not app.exception
+    assert app.selectbox(key="run_choice").value == "demo-run"
+    assert any(tab.label.startswith("Problems (") for tab in app.tabs)
+    kinds = [
+        kind
+        for frame in app.dataframe
+        if "kind" in frame.value.columns
+        for kind in frame.value["kind"].tolist()
+    ]
+    assert "tool error" in kinds
+    assert any("Demo table" in block.value for block in app.markdown)
+    assert any("Infrastructure errors (1)" in header.value for header in app.subheader)
+
+
+def test_run_button_starts_the_cli_in_the_background(
+    test_settings: Settings, tmp_path: Path, started: list[list[str]]
+) -> None:
+    app = _app(test_settings, tmp_path).run()
+    app.button(key="run_builtin").click().run()
+    assert not app.exception
+    [command] = started
+    assert command[1:4] == ["-m", "investigator.cli", "investigate"] and "--run-id" in command
+    assert any(": running" in header.value for header in app.subheader)
+
+
+def test_custom_incident_validates_logs_then_runs_with_its_own_config(
+    test_settings: Settings, tmp_path: Path, started: list[list[str]]
+) -> None:
+    app = _app(test_settings, tmp_path).run()
+    app.radio(key="source").set_value("Custom incident").run()
+    app.text_area(key="logs").set_value("oops").run()
+    app.button(key="run_custom").click().run()
+    assert not app.exception and started == []
+    assert any("expected 'TIMESTAMP LEVEL SERVICE message'" in error.value for error in app.error)
+    reported = iso(load_incident(Path(test_settings.datasets_dir) / "INC-01").reported_at)
+    app.text_area(key="logs").set_value(
+        f"{reported} ERROR orders-service Demo failure typed by hand"
+    ).run()
+    app.button(key="run_custom").click().run()
+    assert not app.exception
+    [command] = started
+    config = Path(command[command.index("--config") + 1])
+    scenario = command[command.index("--scenario") + 1]
+    assert config.exists() and scenario.startswith("CUSTOM-")
+    logs = (config.parent / "datasets" / scenario / "telemetry" / "logs.jsonl").read_text(
+        encoding="utf-8"
+    )
+    assert "Demo failure typed by hand" in logs
+```
+
+- [ ] **Step 2: Run the test to verify it fails**
+
+Run: `uv run pytest tests/integration/test_ui_app.py -q`
+Expected: FAIL with `FileNotFoundError: AppTest script not found`
+
+- [ ] **Step 3: Write the implementation**
+
+#### File: `src/investigator/ui/app.py`
+```python
+"""Demo UI: start investigations, follow them live, and browse every file and failure they produce.
+
+Start it with `uv run investigator ui`. Everything shown is read from files the harness writes, and runs
+are started through the same CLI you use in a terminal.
+"""
+
+import subprocess
+from pathlib import Path
+
+import pydantic
+import streamlit as st
+
+from investigator.backends.simulated import load_services
+from investigator.domain.common import iso
+from investigator.domain.incident import IncidentReport
+from investigator.runtime import list_scenarios, load_incident, new_run_id
+from investigator.settings import load_settings, project_root
+from investigator.ui import data
+
+st.set_page_config(page_title="Incident investigator", layout="wide")
+
+settings = load_settings()
+# Tests (and anyone curious) can point the UI at other folders through session state.
+runs_root = Path(st.session_state.get("runs_root") or settings.path(settings.runs_dir))
+evals_root = Path(st.session_state.get("evals_root") or settings.path("evals/results"))
+datasets_root = Path(st.session_state.get("datasets_dir") or settings.path(settings.datasets_dir))
+settings = settings.model_copy(update={"datasets_dir": str(datasets_root)})
+SEVERITIES = ["SEV1", "SEV2", "SEV3"]
+
+
+def show_file(path: Path) -> None:
+    kind = data.file_kind(path)
+    if kind == "markdown":
+        st.markdown(path.read_text(encoding="utf-8"))
+    elif kind == "json":
+        st.json(data.read_json(path), expanded=False)
+    elif kind == "jsonl":
+        st.dataframe(data.flatten(data.read_jsonl(path)))
+    else:
+        st.code(path.read_text(encoding="utf-8", errors="replace")[:20000])
+
+
+def show_run(run: data.RunInfo) -> None:
+    columns = st.columns(6)
+    columns[0].metric("Status", run.status)
+    columns[1].metric("System", run.system)
+    columns[2].metric("LLM calls", run.llm_calls)
+    columns[3].metric("Tool calls", run.tool_calls)
+    columns[4].metric("Problems", run.problems)
+    columns[5].metric("Wall-clock (s)", f"{run.wall_s:.0f}")
+    st.caption(
+        f"{run.scenario} · model {run.model} · termination: {run.termination or 'n/a'} · {run.path}"
+    )
+    events = data.read_jsonl(run.path / "trace.jsonl")
+    report_tab, problems_tab, timeline_tab, files_tab = st.tabs(
+        ["Report", f"Problems ({run.problems})", "Timeline", "Files"]
+    )
+    with report_tab:
+        report = run.path / "report.md"
+        if report.exists():
+            st.markdown(report.read_text(encoding="utf-8"))
+        else:
+            st.info(
+                "No report yet: the run is still going or stopped early. See Timeline and Problems."
+            )
+    with problems_tab:
+        rows = data.problems(events)
+        if rows:
+            st.dataframe(rows)
+        else:
+            st.success("Nothing failed in this run.")
+    with timeline_tab:
+        rows = data.timeline(events)
+        kinds = sorted({row["type"] for row in rows})
+        chosen = st.multiselect("Event types", kinds, default=kinds, key=f"kinds-{run.run_id}")
+        st.dataframe([row for row in rows if row["type"] in chosen][: data.MAX_ROWS])
+    with files_tab:
+        for path in data.run_files(run.path):
+            with st.expander(f"{path.name} ({path.stat().st_size:,} bytes)"):
+                show_file(path)
+
+
+def start_run(command: list[str], run_id: str) -> None:
+    log_dir = runs_root / "_ui"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_path = log_dir / f"{run_id}.log"
+    with log_path.open("w", encoding="utf-8") as log:
+        process = subprocess.Popen(
+            command, cwd=project_root(), stdout=log, stderr=subprocess.STDOUT
+        )
+    st.session_state["active"] = {"run_id": run_id, "process": process, "log": str(log_path)}
+
+
+@st.fragment(run_every=2)
+def live_panel() -> None:
+    active = st.session_state.get("active")
+    if not active:
+        return
+    code = active["process"].poll()
+    run_dir = runs_root / active["run_id"]
+    events = data.read_jsonl(run_dir / "trace.jsonl")
+    state = (
+        "running" if code is None else ("finished" if code == 0 else f"failed (exit code {code})")
+    )
+    st.subheader(f"Run {active['run_id']}: {state}")
+    columns = st.columns(3)
+    columns[0].metric("LLM calls", sum(1 for event in events if event.get("type") == "llm_call"))
+    columns[1].metric("Tool calls", sum(1 for event in events if event.get("type") == "tool_call"))
+    columns[2].metric("Problems", len(data.problems(events)))
+    st.dataframe(data.timeline(events)[-15:])
+    if code is not None and code != 0:
+        st.error("The command failed. Its output:")
+        st.code(Path(active["log"]).read_text(encoding="utf-8", errors="replace")[-5000:])
+    elif code == 0 and (run_dir / "report.md").exists():
+        st.success("Done. Every file of this run is in the 'Runs and files' tab.")
+        st.markdown((run_dir / "report.md").read_text(encoding="utf-8"))
+
+
+st.title("Incident investigator")
+run_tab, runs_tab, evals_tab = st.tabs(["Run an incident", "Runs and files", "Evaluations"])
+
+with run_tab:
+    scenarios = list_scenarios(settings)
+    if not scenarios:
+        st.warning(
+            f"No scenarios under {datasets_root}. Run `uv run investigator generate-data` first."
+        )
+    else:
+        source = st.radio(
+            "Incident", ["Built-in scenario", "Custom incident"], horizontal=True, key="source"
+        )
+        custom = source == "Custom incident"
+        label = "Telemetry and topology from scenario" if custom else "Scenario"
+        base_id = st.selectbox(label, scenarios, key="base")
+        base_root = datasets_root / base_id
+        base = load_incident(base_root)
+        system = st.radio("System", ["multi", "single"], horizontal=True, key="system")
+        model = st.text_input(
+            "Model",
+            settings.llm.model,
+            key="model",
+            help=(
+                "claude-* or gemini-*. The terminal that started the UI needs that provider's key or Vertex AI "
+                "settings. To replay a recording, use the model it was recorded with."
+            ),
+        )
+        if not custom:
+            st.markdown(f"**{base.title}** ({base.severity}, reported {iso(base.reported_at)})")
+            st.write(base.summary)
+            cassette = project_root() / "tests" / "cassettes" / f"{base_id}-{system}.json"
+            replay = st.checkbox(
+                "Replay the recorded run (offline: no API key, no cost)",
+                key="replay",
+                disabled=not cassette.exists(),
+            )
+            if st.button("Run investigation", type="primary", key="run_builtin"):
+                run_id = new_run_id(base_id, system)
+                command = data.investigate_command(
+                    scenario=base_id,
+                    system=system,
+                    run_id=run_id,
+                    model=model,
+                    replay=cassette if replay else None,
+                )
+                start_run(command, run_id)
+        else:
+            services = sorted(service.name for service in load_services(base_root / "telemetry"))
+            window_start, window_end = data.telemetry_window(base_root)
+            title = st.text_input("Title", base.title, key="title")
+            summary = st.text_area("What is happening?", base.summary, key="summary")
+            severity = st.selectbox(
+                "Severity", SEVERITIES, index=SEVERITIES.index(base.severity), key="severity"
+            )
+            default_services = [name for name in base.affected_services if name in services]
+            affected = st.multiselect(
+                "Affected services", services, default=default_services, key="affected"
+            )
+            reported = st.text_input(
+                "Reported at (UTC, ISO 8601)", iso(base.reported_at), key="reported"
+            )
+            st.caption(
+                f"This scenario's telemetry covers {window_start} to {window_end}. Keep timestamps inside it."
+            )
+            logs_text = st.text_area(
+                "Extra log lines (optional), one per line: TIMESTAMP LEVEL SERVICE message",
+                placeholder=f"{iso(base.reported_at)} ERROR {services[0]} Something specific went wrong",
+                key="logs",
+            )
+            keep_faults = st.checkbox(
+                "Keep this scenario's simulated tool failures", value=True, key="keep_faults"
+            )
+            if st.button("Run investigation", type="primary", key="run_custom"):
+                records, errors = data.parse_log_lines(logs_text, set(services))
+                run_id = new_run_id("CUSTOM", system)
+                try:
+                    incident = IncidentReport.model_validate(
+                        {
+                            "incident_id": run_id,
+                            "title": title,
+                            "severity": severity,
+                            "reported_at": reported,
+                            "reporter": "demo user",
+                            "summary": summary,
+                            "affected_services": affected,
+                        }
+                    )
+                except pydantic.ValidationError as exc:
+                    errors.append(f"Incident fields: {exc.errors()[0]['msg']}")
+                for error in errors:
+                    st.error(error)
+                if not errors:
+                    custom_root = runs_root / "_custom" / run_id
+                    data.make_custom_scenario(
+                        base_root,
+                        custom_root / "datasets",
+                        incident,
+                        records,
+                        keep_faults=keep_faults,
+                    )
+                    config = data.write_custom_config(
+                        custom_root / "config.yaml",
+                        project_root() / "config" / "default.yaml",
+                        custom_root / "datasets",
+                    )
+                    command = data.investigate_command(
+                        scenario=run_id, system=system, run_id=run_id, model=model, config=config
+                    )
+                    start_run(command, run_id)
+    live_panel()
+
+with runs_tab:
+    runs = {run.run_id: run for run in data.find_runs([runs_root, evals_root])}
+    if not runs:
+        st.info(
+            "No runs yet. Start one in the first tab, or run `uv run investigator investigate`."
+        )
+    else:
+        chosen_id = st.selectbox(
+            "Run", list(runs), format_func=lambda run_id: runs[run_id].label, key="run_choice"
+        )
+        show_run(runs[chosen_id])
+
+with evals_tab:
+    evaluations = data.find_evaluations(evals_root)
+    if not evaluations:
+        st.info("No evaluation results yet. Run `uv run investigator eval ...` first.")
+    else:
+        name = st.selectbox("Evaluation", [path.name for path in evaluations], key="eval_choice")
+        folder = evals_root / name
+        results = folder / "results.md"
+        if results.exists():
+            st.markdown(results.read_text(encoding="utf-8"))
+        else:
+            st.info("results.md is written when the evaluation finishes.")
+        failures = data.read_jsonl(folder / "errors.jsonl")
+        if failures:
+            st.subheader(f"Infrastructure errors ({len(failures)})")
+            st.dataframe(data.flatten(failures))
+        config = data.read_json(folder / "config.json")
+        if config:
+            with st.expander("config.json"):
+                st.json(config, expanded=False)
+```
+
+- [ ] **Step 4: Run the test to verify it passes**
+
+Run: `uv run pytest tests/integration/test_ui_app.py -q`
+Expected: `3 passed`. Lines saying `missing ScriptRunContext` are normal in headless tests.
+
+- [ ] **Step 5: Look at it (for the person; the coding model skips this step)**
+
+Run: `uv run investigator ui` (or `make ui`). Your browser opens http://localhost:8501.
+- **Runs and files** shows every run under `runs/` and `evals/results/`.
+- **Run an incident** starts a run, using the model typed in the Model box. Start the UI from a terminal that has that provider's key or Vertex AI settings exported. Replay works only for scenarios that have a recording in `tests/cassettes/` (Task 6.5).
+
+- [ ] **Step 6: Milestone check and commit**
+
+Run: `uv run pytest -q && uv run mypy`
+Expected: all tests pass and mypy reports `Success`. If mypy reports errors, apply the type-ignore rule.
+
+```bash
+git add -A
+git commit -m "feat(ui): plain Streamlit demo UI for runs, files, failures and live investigations"
 ```
 
 ---
@@ -16829,7 +18271,7 @@ The system is an investigator, not an actor. Every tool is read-only, and a huma
 ```mermaid
 flowchart TB
   subgraph Entry["Entry points"]
-    CLI["CLI: investigate · eval · generate-data · show-trace"]
+    CLI["CLI: investigate · eval · generate-data · show-trace · ui (demo page)"]
     APIX["(not implemented) HTTP API / alert webhook"]
   end
   subgraph Orch["Orchestration layer (deterministic)"]
@@ -17328,8 +18770,9 @@ uv run investigator investigate --scenario INC-01 --replay tests/cassettes/INC-0
 | `investigator eval` | Runs the evaluation. Options: `--scenarios`, `--systems`, `--trials`, `--concurrency`, `--model`, `--out`, `--config`, `--yes`, `--no-critic`, `--min-accuracy` |
 | `investigator summarize RESULTS_DIR` | Rebuilds `results.md` and `summary.json` from `results.jsonl` |
 | `investigator record-cassettes` | Records real responses for the offline replay tests |
+| `investigator ui` | Opens the demo UI in your browser (see below) |
 
-Make targets: `make setup`, `make data`, `make test`, `make lint`, `make format`, `make typecheck`, `make check`, `make run` (e.g. `make run SCENARIO=INC-02 SYSTEM=single`), `make eval-smoke`, `make eval`, `make record`.
+Make targets: `make setup`, `make data`, `make test`, `make lint`, `make format`, `make typecheck`, `make check`, `make run` (e.g. `make run SCENARIO=INC-02 SYSTEM=single`), `make ui`, `make eval-smoke`, `make eval`, `make record`.
 
 ## Configuration
 
@@ -17399,6 +18842,15 @@ The final results and their interpretation: [docs/technical-note.md](docs/techni
 
 CI (`.github/workflows/ci.yml`) runs on every push and pull request. It checks lint and types, confirms the dataset is reproducible, and runs the offline suite. `.github/workflows/eval.yml` runs a paid evaluation on demand. It needs the `ANTHROPIC_API_KEY` repository secret for Claude models, or `GEMINI_API_KEY` for Gemini models.
 
+## Demo UI
+
+A plain web page for demos: `uv run investigator ui` (or `make ui`) opens http://localhost:8501. It has three tabs:
+- **Run an incident:** run a built-in scenario, or type a custom incident with a few log lines of your own. The custom incident is investigated against a built-in scenario's telemetry. Choose multi or single agent and the model, then follow the run live.
+- **Runs and files:** every run under `runs/` and `evals/results/`. For each run you get the report, a Problems list (failed tool calls, LLM errors, failed tasks, fallbacks), the full timeline and every file the run wrote.
+- **Evaluations:** each evaluation's results tables and infrastructure errors.
+
+Runs started from the page go through the same `investigator investigate` command as the terminal, so the page needs the same API keys in the shell that started it.
+
 ## Docker
 
 ```bash
@@ -17422,7 +18874,7 @@ On Linux, add `--user "$(id -u):$(id -g)"` to `docker run` so the files written 
 ## Limitations and incomplete functionality
 
 - **Simulated data.** Telemetry comes from 12 generated scenarios on one fictional platform. No connectors to real systems (Loki, Prometheus, ArgoCD, Backstage) exist; the backend ports are where they would plug in.
-- **CLI only.** There is no alert webhook or HTTP API.
+- **No service API.** There is no alert webhook or HTTP API. The demo UI is a local page for one person, not a multi-user service.
 - **Keyword history search.** Incident-history search uses keywords, not embeddings.
 - **Single process, in-memory state.** A crashed investigation is not resumed. The eval runner resumes only at run granularity.
 - **Small sample.** The final evaluation has 36 runs per system, so accuracy differences below about 17 percentage points are within noise. All results are for one model.
