@@ -39,7 +39,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 5.9 Baseline, Markdown report & runtime
 - [x] 5.10 CLI
 - [x] 5.11 Integration tests
-- [ ] 5.12 Architecture tests
+- [x] 5.12 Architecture tests
 - [ ] 5.13 Demo UI data layer & CLI hooks
 - [ ] 5.14 Demo UI page
 - [ ] 5.15 Tune limits, critic effort & eval concurrency
@@ -101,3 +101,4 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - TYPE-IGNORE: src/investigator/cli.py:95 and :282 `[arg-type]` (`system` is a str validated at runtime; ruff format moved the plan's trailing comment, so it now sits on the `system=system,` line).
 - 2026-10-20: Plan updated in docs/design/: new Task 5.15 (after 5.14) raises run limits to 120 LLM calls / 250 tool calls / 1800 s, sets the critic to effort medium, and runs evaluations at concurrency 4, based on the first live run (INC-01 on gemini-3.8-flash: correct root cause, 111 tool calls, 766 s). Milestone 5 now ends after 5.15.
 - 2026-10-20: 5.11 done. test_pipeline_behaviors.py: 13 passed (scripted agents, no API calls). Ruff format also reformatted Python code blocks inside docs/design/02-development-plan.md (formatting only, no logic change).
+- 2026-10-20: 5.12 done. test_boundaries.py: 5 passed. Full suite 227 passed; ruff and mypy clean.
