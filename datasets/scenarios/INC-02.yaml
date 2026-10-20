@@ -1,0 +1,62 @@
+id: INC-02
+slug: portfolio-pool-config
+seed: 102
+t0: "2026-03-11T14:03:00Z"
+reported_offset: "+12m"
+incident:
+  title: "Portfolio page timing out"
+  severity: SEV2
+  reporter: "support escalation"
+  summary: >-
+    Since roughly 14:00 UTC many customers report that the portfolio page spins and then
+    times out. The error rate on the portfolio page is elevated.
+  affected_services: [web-app, portfolio-service]
+  customer_impact: "About 30% of portfolio page loads fail or take more than 8 seconds"
+  initial_hypothesis: "Probably the notification-service deploy that went out right before 14:00."
+changes:
+  - key: pool_shrink
+    type: config
+    service: portfolio-service
+    at: "-2m"
+    config_key: db.pool.max_size
+    old: "40"
+    new: "4"
+    source: runtime_config
+    author: ops-automation
+    note: "Right-size database connection pools per the Q1 capacity review"
+  - key: notif_deploy
+    type: deploy
+    service: notification-service
+    at: "-4m"
+    version: "2.3.1"
+    previous_version: "2.3.0"
+    author: alice
+    summary: "Tweak trade confirmation email templates"
+metric_signals:
+  - {service: portfolio-service, metric: db_pool_wait_ms, shape: step, at: "-1m", to: 2400}
+  - {service: portfolio-service, metric: db_pool_in_use, shape: step, at: "-2m", to: 4}
+  - {service: portfolio-service, metric: latency_p99_ms, shape: step, at: "-1m", to: 8200}
+  - {service: portfolio-service, metric: latency_p50_ms, shape: step, at: "-1m", to: 1900}
+  - {service: portfolio-service, metric: error_rate_pct, shape: step, at: "0m", to: 12}
+  - {service: portfolio-db, metric: active_connections, shape: step, at: "-2m", to: 5}
+  - {service: portfolio-db, metric: queries_per_sec, shape: multiply, at: "-1m", factor: 0.35}
+  - {service: web-app, metric: error_rate_pct, shape: step, at: "0m", to: 4}
+log_signals:
+  - {service: portfolio-service, level: WARN, template: "Timed out waiting for connection from pool after {int:2000-3000}ms (pool=portfolio-db, max=4)", at: "-1m", rate_per_min: 30}
+  - {service: portfolio-service, level: ERROR, template: "Request GET /api/v1/portfolio failed: timeout acquiring database connection", at: "0m", rate_per_min: 12}
+  - {service: portfolio-service, level: INFO, template: "Configuration reloaded: db.pool.max_size=4", at: "-2m", count: 1}
+faults:
+  - {operation: list_config_changes, fault: timeout, first_n: 1}
+ground_truth:
+  expected_status: conclusive
+  services: [portfolio-service]
+  categories: [config_change]
+  trigger: pool_shrink
+  key_evidence:
+    - {kind: change, change: pool_shrink}
+    - {kind: metric_series, service: portfolio-service, metric: db_pool_wait_ms}
+    - {kind: log_pattern, service: portfolio-service, contains: "waiting for connection from pool"}
+  red_herring_changes: [notif_deploy]
+  red_herring_services: [notification-service, portfolio-db]
+  tags: [misleading_evidence, conflicting_observations, config_change]
+  notes: "The reporter blames a coincident deploy of an unrelated service. Database connections drop, which contradicts a database-overload theory."

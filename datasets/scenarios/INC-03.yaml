@@ -1,0 +1,47 @@
+id: INC-03
+slug: bank-gateway-degradation
+seed: 103
+t0: "2026-04-07T09:40:00Z"
+reported_offset: "+15m"
+incident:
+  title: "Deposits failing or hanging"
+  severity: SEV2
+  reporter: "payments on-call"
+  summary: >-
+    Since about 09:40 UTC deposit requests are failing or hanging. The payments-service
+    error rate is around 25%.
+  affected_services: [payments-service]
+  customer_impact: "Customers cannot fund their accounts"
+  initial_hypothesis: "Could the payments-service v7.2.0 deploy from this morning be responsible?"
+changes:
+  - key: pay_release
+    type: deploy
+    service: payments-service
+    at: "-2h25m"
+    version: "7.2.0"
+    previous_version: "7.1.4"
+    author: farid
+    summary: "Add idempotency keys to withdrawal requests"
+metric_signals:
+  - {service: payments-service, metric: bank_gateway_latency_ms, shape: ramp, at: "-2m", until: "+3m", to: 9500}
+  - {service: payments-service, metric: bank_gateway_error_rate_pct, shape: step, at: "0m", to: 28}
+  - {service: payments-service, metric: error_rate_pct, shape: step, at: "0m", to: 25}
+  - {service: payments-service, metric: latency_p99_ms, shape: step, at: "-1m", to: 10200}
+  - {service: payments-service, metric: latency_p50_ms, shape: step, at: "0m", to: 3500}
+log_signals:
+  - {service: payments-service, level: ERROR, template: "Upstream bank-gateway request timed out after 10000ms (POST /v2/transfers)", at: "0m", rate_per_min: 15}
+  - {service: payments-service, level: WARN, template: "Retrying bank-gateway call (attempt {int:2-3}/3)", at: "-1m", rate_per_min: 20}
+  - {service: payments-service, level: ERROR, template: "Circuit breaker OPEN for bank-gateway after {int:20-40} consecutive failures", at: "+12m", count: 1}
+faults:
+  - {operation: list_deployments, fault: rate_limited, first_n: 2, params: {retry_after_s: 0.2}}
+ground_truth:
+  expected_status: conclusive
+  services: [bank-gateway]
+  categories: [dependency_failure]
+  key_evidence:
+    - {kind: metric_series, service: payments-service, metric: bank_gateway_latency_ms}
+    - {kind: log_pattern, service: payments-service, contains: "Upstream bank-gateway request timed out"}
+  red_herring_changes: [pay_release]
+  red_herring_services: [payments-service]
+  tags: [misleading_evidence, external_dependency, cross_service]
+  notes: "The external bank gateway degrades. A payments-service deploy happened 2.5 hours earlier, and metrics stayed stable after it."

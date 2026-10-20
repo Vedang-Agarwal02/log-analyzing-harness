@@ -1,0 +1,46 @@
+id: INC-01
+slug: orders-npe-deploy
+seed: 101
+t0: "2026-03-10T10:12:00Z"
+reported_offset: "+9m"
+window: {before: "6h", after: "30m"}
+incident:
+  title: "Order placement failing with HTTP 500"
+  severity: SEV1
+  reporter: "on-call engineer (trading)"
+  summary: >-
+    Since about 10:12 UTC roughly a third of order placement requests (POST /api/v1/orders)
+    fail with HTTP 500. Customers see "Something went wrong" when submitting orders.
+    Other pages appear to work.
+  affected_services: [api-gateway, orders-service]
+  customer_impact: "About 35% of order submissions failing"
+changes:
+  - key: orders_release
+    type: deploy
+    service: orders-service
+    at: "-4m"
+    version: "4.18.0"
+    previous_version: "4.17.3"
+    author: chen
+    summary: "Refactor limit-price validation; switch to the new quote client"
+metric_signals:
+  - {service: orders-service, metric: error_rate_pct, shape: step, at: "-1m", to: 34}
+  - {service: orders-service, metric: latency_p50_ms, shape: step, at: "-1m", to: 30}
+  - {service: api-gateway, metric: error_rate_pct, shape: step, at: "-1m", to: 9}
+log_signals:
+  - {service: orders-service, level: ERROR, template: "NullPointerException in LimitPriceValidator.validate(LimitPriceValidator.java:{int:80-90}) for order {id}", at: "-1m", rate_per_min: 30}
+  - {service: orders-service, level: ERROR, template: "Order {id} failed: internal error (500)", at: "-1m", rate_per_min: 30}
+  - {service: api-gateway, level: WARN, template: "Upstream orders-service returned 500 for POST /api/v1/orders", at: "-1m", rate_per_min: 20}
+faults:
+  - {operation: get_metric, fault: timeout, match: {service: orders-service, metric: error_rate_pct}, first_n: 1}
+ground_truth:
+  expected_status: conclusive
+  services: [orders-service]
+  categories: [bad_deployment]
+  trigger: orders_release
+  key_evidence:
+    - {kind: change, change: orders_release}
+    - {kind: metric_series, service: orders-service, metric: error_rate_pct}
+    - {kind: log_pattern, service: orders-service, contains: "NullPointerException in LimitPriceValidator"}
+  tags: [control, bad_deployment]
+  notes: "Control case: a deploy four minutes before the onset introduces a NullPointerException."

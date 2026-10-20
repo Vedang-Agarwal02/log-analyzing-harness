@@ -10,7 +10,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 2.1 Scenario spec models
 - [x] 2.2 Platform model & platform.yaml
 - [x] 2.3 Generator
-- [ ] 2.4 Scenarios INC-01..06
+- [x] 2.4 Scenarios INC-01..06
 - [ ] 2.5 Scenarios INC-07..12
 - [ ] 3.1 Neutral modules & LLM types
 - [ ] 3.2 Schema & tool abstractions
@@ -60,3 +60,4 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - 2026-10-20: 2.1 done. test_datagen_spec.py: 12 passed.
 - 2026-10-20: 2.2 done. test_datagen_platform.py: 3 passed.
 - 2026-10-20: 2.3 done. test_datagen_generate.py: 6 passed.
+- 2026-10-20: 2.4 done. INC-01..06 generate (6).

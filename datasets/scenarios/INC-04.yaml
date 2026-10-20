@@ -1,0 +1,48 @@
+id: INC-04
+slug: quotes-memory-leak
+seed: 104
+t0: "2026-05-13T16:20:00Z"
+reported_offset: "+10m"
+window: {before: "60h", after: "20m"}
+metrics_step_seconds: 300
+log_noise_scale: 0.1
+incident:
+  title: "Intermittent 502s on quotes and portfolio pages"
+  severity: SEV3
+  reporter: "web on-call"
+  summary: >-
+    For the last couple of days users intermittently get 502 errors on the quotes and
+    portfolio pages. Each episode lasts a few minutes; the latest was around 16:20 UTC.
+  affected_services: [web-app, quotes-service, portfolio-service]
+  customer_impact: "Short bursts of failed page loads every few hours"
+  initial_hypothesis: "Probably the traffic spike at market open."
+changes:
+  - key: quotes_release
+    type: deploy
+    service: quotes-service
+    at: "-49h30m"
+    version: "3.9.0"
+    previous_version: "3.8.2"
+    author: dmitri
+    summary: "Add per-symbol quote cache for option chains"
+metric_signals:
+  - {service: quotes-service, metric: memory_mb, shape: sawtooth, at: "-49h30m", period: "5h30m", start_value: 650, to: 2000}
+  - {service: quotes-service, metric: gc_time_pct, shape: sawtooth, at: "-49h30m", period: "5h30m", start_value: 2, to: 35}
+  - {service: quotes-service, metric: error_rate_pct, shape: periodic_spike, at: "-49h30m", period: "5h30m", duration: "6m", to: 40}
+  - {service: api-gateway, metric: error_rate_pct, shape: periodic_spike, at: "-49h30m", period: "5h30m", duration: "6m", to: 6}
+  - {service: web-app, metric: error_rate_pct, shape: periodic_spike, at: "-49h30m", period: "5h30m", duration: "6m", to: 5}
+log_signals:
+  - {service: quotes-service, level: ERROR, template: "Container quotes-service-{id} killed: OOMKilled (memory limit 2048Mi)", at: "-44h", every: "5h30m", count: 1}
+  - {service: quotes-service, level: WARN, template: "GC overhead high: {int:20-45}% of time spent in garbage collection", at: "-48h", rate_per_min: 0.2}
+  - {service: web-app, level: ERROR, template: "Upstream api-gateway returned 502 for /{choice:quotes|portfolio}", at: "-44h", every: "5h30m", count: 5}
+ground_truth:
+  expected_status: conclusive
+  services: [quotes-service]
+  categories: [bad_deployment, resource_exhaustion]
+  trigger: quotes_release
+  key_evidence:
+    - {kind: change, change: quotes_release}
+    - {kind: metric_series, service: quotes-service, metric: memory_mb}
+    - {kind: log_pattern, service: quotes-service, contains: "OOMKilled"}
+  tags: [misleading_evidence, slow_burn, wide_window]
+  notes: "A memory leak shipped two days earlier causes an out-of-memory restart every 5.5 hours. Normal market-open traffic is a distraction."

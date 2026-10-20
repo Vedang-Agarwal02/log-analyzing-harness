@@ -1,0 +1,35 @@
+id: INC-05
+slug: auth-cert-expiry
+seed: 105
+t0: "2026-06-02T00:00:00Z"
+reported_offset: "+14m"
+incident:
+  title: "Login failures spiking"
+  severity: SEV1
+  reporter: "identity on-call"
+  summary: >-
+    Since 00:00 UTC about 60% of login attempts fail and the mobile app shows "Unable to
+    sign in". Users who are already signed in seem mostly fine.
+  affected_services: [web-app, api-gateway, auth-service]
+  customer_impact: "60% of logins failing"
+  initial_hypothesis: "auth-service seems to be overloaded."
+metric_signals:
+  - {service: api-gateway, metric: error_rate_pct, shape: step, at: "0m", to: 14}
+  - {service: api-gateway, metric: tls_handshake_errors_per_min, shape: step, at: "0m", to: 320}
+  - {service: auth-service, metric: request_rate_rps, shape: multiply, at: "0m", factor: 0.4}
+  - {service: auth-service, metric: cpu_pct, shape: multiply, at: "0m", factor: 0.5}
+  - {service: web-app, metric: error_rate_pct, shape: step, at: "0m", to: 9}
+log_signals:
+  - {service: api-gateway, level: ERROR, template: "TLS handshake with upstream auth-service failed: x509: certificate has expired or is not yet valid (notAfter=2026-06-02T00:00:00Z)", at: "0m", rate_per_min: 40}
+  - {service: auth-service, level: WARN, template: "Server certificate for auth-service.internal expires soon (notAfter=2026-06-02T00:00:00Z); automatic renewal failed", at: "-5h30m", until: "0m", every: "1h", count: 1}
+  - {service: web-app, level: ERROR, template: "Login request failed: upstream returned 502", at: "0m", rate_per_min: 15}
+ground_truth:
+  expected_status: conclusive
+  services: [auth-service]
+  categories: [infrastructure]
+  key_evidence:
+    - {kind: log_pattern, service: api-gateway, contains: "certificate has expired"}
+    - {kind: metric_series, service: auth-service, metric: request_rate_rps}
+    - {kind: log_pattern, service: auth-service, contains: "automatic renewal failed"}
+  tags: [conflicting_observations, no_change, cross_service]
+  notes: "auth-service's server certificate expires at midnight. No change is involved. Requests reaching auth-service drop, which contradicts the 'overloaded' theory."
