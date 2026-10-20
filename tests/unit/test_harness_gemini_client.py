@@ -279,13 +279,39 @@ def test_contents_echo_model_parts_and_group_function_responses() -> None:
     )
     user = contents[2]
     assert isinstance(user, types.Content) and user.parts is not None
-    first, second, note = user.parts
+    first, second = user.parts
     assert first.function_response is not None and second.function_response is not None
     assert (first.function_response.id, first.function_response.name) == ("c1", "query_logs")
     assert first.function_response.response == {"ok": True, "data": {"patterns": []}}
     assert (second.function_response.id, second.function_response.name) == ("c2", "list_services")
-    assert second.function_response.response == {"error": "not json"}
-    assert note.text == "Tool-call limit reached."
+    assert second.function_response.response == {
+        "error": "not json",
+        "harness_note": "Tool-call limit reached.",
+    }
+
+
+def test_function_responses_never_share_a_user_turn_with_text() -> None:
+    # Live Gemini rejects such a turn ("400 INVALID_ARGUMENT: Requests ending with a model turn are not
+    # supported"), so the harness note travels inside the last function response instead.
+    model_turn = AssistantMessage(
+        raw=(part_to_dict(_call("query_logs", "c1", service="a")),),
+        tool_calls=(ToolCall("c1", "query_logs", {"service": "a"}),),
+    )
+    results = UserMessage(
+        parts=(
+            ToolResultPart("c1", json.dumps({"ok": True})),
+            UserText("You have used all 16 tool calls allowed for this task."),
+        )
+    )
+    contents = to_gemini_contents(_request(model_turn, results).messages)
+    last = contents[-1]
+    assert isinstance(last, types.Content) and last.role == "user" and last.parts is not None
+    [only] = last.parts
+    assert only.text is None and only.function_response is not None
+    assert only.function_response.response == {
+        "ok": True,
+        "harness_note": "You have used all 16 tool calls allowed for this task.",
+    }
 
 
 def test_function_responses_omit_ids_the_model_did_not_send_and_empty_turns_get_text() -> None:

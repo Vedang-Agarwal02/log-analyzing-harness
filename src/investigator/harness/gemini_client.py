@@ -142,17 +142,25 @@ def to_gemini_contents(messages: tuple[Message, ...]) -> list[types.ContentUnion
             ]
             contents.append(types.Content(role="model", parts=parts))
             continue
-        user_parts: list[types.Part] = []
+        results: list[tuple[str, str | None, dict[str, Any]]] = []
         for part in message.parts:
             if isinstance(part, ToolResultPart):
                 name, call_id = calls.get(part.tool_call_id, ("unknown_tool", None))
-                response = types.FunctionResponse(
-                    id=call_id, name=name, response=_response_payload(part)
-                )
-                user_parts.append(types.Part(function_response=response))
-        for part in message.parts:
-            if isinstance(part, UserText):
-                user_parts.append(types.Part(text=part.text))
+                results.append((name, call_id, _response_payload(part)))
+        notes = [part.text for part in message.parts if isinstance(part, UserText)]
+        if results and notes:
+            # Gemini rejects a user turn that mixes function responses with text ("400 INVALID_ARGUMENT:
+            # Requests ending with a model turn are not supported"), so the note rides inside the last response.
+            name, call_id, payload = results[-1]
+            results[-1] = (name, call_id, {**payload, "harness_note": "\n".join(notes)})
+            notes = []
+        user_parts = [
+            types.Part(
+                function_response=types.FunctionResponse(id=call_id, name=name, response=payload)
+            )
+            for name, call_id, payload in results
+        ]
+        user_parts.extend(types.Part(text=text) for text in notes)
         contents.append(types.Content(role="user", parts=user_parts))
     return contents
 
