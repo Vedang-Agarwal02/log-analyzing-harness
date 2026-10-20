@@ -35,7 +35,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 5.5 Context builders
 - [x] 5.6 Policies
 - [x] 5.7 Scheduler
-- [ ] 5.8 Coordinator
+- [x] 5.8 Coordinator
 - [ ] 5.9 Baseline, Markdown report & runtime
 - [ ] 5.10 CLI
 - [ ] 5.11 Integration tests
@@ -91,3 +91,4 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - 2026-10-20: 5.5 done. test_agents_context.py: 5 passed.
 - 2026-10-20: 5.6 done. test_orchestrator_policies.py: 4 passed. Full suite: 192 passed.
 - 2026-10-20: 5.7 done. test_orchestrator_scheduler.py: 5 passed.
+- 2026-10-20: 5.8 done. test_coordinator.py: 1 passed (the full pipeline test runs against the scripted agents in tests/fakes.py).
