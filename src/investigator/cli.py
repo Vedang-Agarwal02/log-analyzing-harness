@@ -1,7 +1,9 @@
-"""Command-line interface: generate data, investigate, evaluate, record cassettes, inspect traces."""
+"""Command-line interface: generate data, investigate, evaluate, record cassettes, inspect traces, demo UI."""
 
 import asyncio
 import json
+import subprocess
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any
@@ -81,12 +83,15 @@ def investigate(
     no_critic: Annotated[
         bool, typer.Option("--no-critic", help="Ablation: skip the critic loop")
     ] = False,
+    run_id: Annotated[
+        str | None, typer.Option("--run-id", help="Use this run id instead of a generated one")
+    ] = None,
 ) -> None:
     """Run one investigation; writes report.md, report.json and trace.jsonl under runs/."""
     if system not in ("multi", "single"):
         raise typer.BadParameter("system must be 'multi' or 'single'")
     settings = _settings(config, model, no_critic)
-    run_id = new_run_id(scenario, system)
+    run_id = run_id or new_run_id(scenario, system)
     run_dir = settings.path(settings.runs_dir) / run_id
     llm = build_llm(settings, record=record, replay=replay)
     outcome = asyncio.run(
@@ -97,7 +102,7 @@ def investigate(
             llm=llm,
             run_dir=run_dir,
             run_id=run_id,
-        )
+        )  # type: ignore[arg-type]
     )
     report = outcome.report
     usage = outcome.metrics.usage
@@ -287,6 +292,19 @@ def record_cassettes(
             )
         )
         console.print(f"recorded {cassette} ({outcome.report.status})")
+
+
+@app.command()
+def ui(port: Annotated[int, typer.Option(help="Port for the web UI")] = 8501) -> None:
+    """Open the demo UI: browse runs, their files and failures, and start new runs (needs Streamlit)."""
+    try:
+        import streamlit  # noqa: F401
+    except ImportError:
+        console.print("The UI needs Streamlit: run `uv sync --extra ui`.")
+        raise typer.Exit(1) from None
+    app_path = Path(__file__).parent / "ui" / "app.py"
+    command = [sys.executable, "-m", "streamlit", "run", str(app_path), "--server.port", str(port)]
+    raise typer.Exit(subprocess.call(command, cwd=project_root()))
 
 
 if __name__ == "__main__":

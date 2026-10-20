@@ -15,6 +15,9 @@ dependencies = [
 
 [project.optional-dependencies]
 mcp = ["mcp>=1.30,<2"]
+ui = [
+    "streamlit>=1.64,<2",
+]
 
 [project.scripts]
 investigator = "investigator.cli:app"
@@ -26,6 +29,7 @@ dev = [
     "ruff>=0.17,<0.18",
     "mypy>=2.4,<3",
     "types-PyYAML>=6.0",
+    "streamlit>=1.64,<2",
 ]
 
 [build-system]

@@ -1,4 +1,4 @@
-.PHONY: setup data test lint format typecheck check run eval-smoke eval record
+.PHONY: setup data test lint format typecheck check run ui eval-smoke eval record
 
 setup:
 	uv sync
@@ -24,6 +24,9 @@ check: lint typecheck test
 
 run:
 	uv run investigator investigate --scenario $(or $(SCENARIO),INC-01) --system $(or $(SYSTEM),multi)
+
+ui:
+	uv run investigator ui
 
 eval-smoke:
 	uv run investigator eval --scenarios INC-01,INC-10 --trials 1 --yes

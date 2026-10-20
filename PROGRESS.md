@@ -40,7 +40,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 5.10 CLI
 - [x] 5.11 Integration tests
 - [x] 5.12 Architecture tests
-- [ ] 5.13 Demo UI data layer & CLI hooks
+- [x] 5.13 Demo UI data layer & CLI hooks
 - [ ] 5.14 Demo UI page
 - [ ] 5.15 Tune limits, critic effort & eval concurrency
 - [ ] 6.1 Ground truth & scoring
@@ -102,3 +102,5 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - 2026-10-20: Plan updated in docs/design/: new Task 5.15 (after 5.14) raises run limits to 120 LLM calls / 250 tool calls / 1800 s, sets the critic to effort medium, and runs evaluations at concurrency 4, based on the first live run (INC-01 on gemini-3.8-flash: correct root cause, 111 tool calls, 766 s). Milestone 5 now ends after 5.15.
 - 2026-10-20: 5.11 done. test_pipeline_behaviors.py: 13 passed (scripted agents, no API calls). Ruff format also reformatted Python code blocks inside docs/design/02-development-plan.md (formatting only, no logic change).
 - 2026-10-20: 5.12 done. test_boundaries.py: 5 passed. Full suite 227 passed; ruff and mypy clean.
+- 2026-10-20: 5.13 done. test_ui_data.py + test_cli_ui.py: 7 passed; test_cli.py: 6 passed; full suite 234 passed. E1 (ERRORS.md, now CLOSED): test_cli_ui.py asserted that ui/app.py exists, which Task 5.14 creates. The assertion now checks that the path ends in investigator/ui/app.py. The same change is in docs/design/02-development-plan.md, so the plan matches and no PLAN-FIX is needed.
+- TYPE-IGNORE: src/investigator/cli.py:100 `[arg-type]` (`system` is a str validated at runtime; mypy reports the error on the `system=system,` line, so the ignore sits there).

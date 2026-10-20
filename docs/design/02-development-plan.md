@@ -15435,8 +15435,9 @@ def test_ui_command_starts_streamlit_on_the_app(monkeypatch: pytest.MonkeyPatch)
     result = runner.invoke(app, ["ui", "--port", "8600"])
     assert result.exit_code == 0, result.output
     [command] = calls
-    assert command[1:4] == ["-m", "streamlit", "run"] and Path(command[4]).name == "app.py"
-    assert Path(command[4]).exists() and command[-2:] == ["--server.port", "8600"]
+    assert command[1:4] == ["-m", "streamlit", "run"]
+    assert Path(command[4]).parts[-3:] == ("investigator", "ui", "app.py")
+    assert command[-2:] == ["--server.port", "8600"]
 ```
 
 - [ ] **Step 3: Run the tests to verify they fail**
