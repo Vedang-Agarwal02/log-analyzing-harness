@@ -1,0 +1,398 @@
+# Shared fictional platform for every scenario: a retail investing platform.
+# Times of day matter: US market hours (13:30-20:00 UTC) raise traffic by about 30%.
+
+metric_profiles:
+  service:
+    request_rate_rps: {unit: rps, description: "Requests per second served", noise_pct: 4, traffic: true}
+    error_rate_pct: {unit: "%", description: "Share of requests failing with 5xx", noise_pct: 15, max_value: 100}
+    latency_p50_ms: {unit: ms, description: "Median request latency", noise_pct: 5}
+    latency_p99_ms: {unit: ms, description: "99th percentile request latency", noise_pct: 8}
+    cpu_pct: {unit: "%", description: "CPU utilisation across replicas", noise_pct: 5, traffic: true, max_value: 100}
+    memory_mb: {unit: MB, description: "Resident memory per replica", noise_pct: 2}
+  postgres:
+    cpu_pct: {unit: "%", description: "Database CPU utilisation", noise_pct: 5, traffic: true, max_value: 100}
+    active_connections: {unit: count, description: "Open client connections", noise_pct: 6}
+    queries_per_sec: {unit: qps, description: "Queries executed per second", noise_pct: 5, traffic: true}
+    lock_wait_ms: {unit: ms, description: "Average time queries wait for locks", noise_pct: 20}
+    replication_lag_s: {unit: s, description: "Replica replication lag", noise_pct: 20}
+    disk_used_pct: {unit: "%", description: "Data volume usage", noise_pct: 0.5, max_value: 100}
+  redis:
+    cpu_pct: {unit: "%", description: "Cache CPU utilisation", noise_pct: 5, traffic: true, max_value: 100}
+    memory_used_pct: {unit: "%", description: "Memory used versus maxmemory", noise_pct: 1, max_value: 100}
+    evictions_per_sec: {unit: "1/s", description: "Keys evicted per second", noise_pct: 30}
+    hit_ratio: {unit: ratio, description: "Cache hit ratio", noise_pct: 1, max_value: 1}
+    connected_clients: {unit: count, description: "Connected clients", noise_pct: 5}
+  kafka:
+    disk_used_pct: {unit: "%", description: "Broker log directory usage", noise_pct: 0.3, max_value: 100}
+    produce_error_rate_pct: {unit: "%", description: "Share of produce requests failing", noise_pct: 20, max_value: 100}
+    under_replicated_partitions: {unit: count, description: "Partitions with missing replicas", noise_pct: 0}
+    bytes_in_per_sec: {unit: "B/s", description: "Incoming bytes per second", noise_pct: 5, traffic: true}
+  dns:
+    queries_per_sec: {unit: qps, description: "DNS queries per second", noise_pct: 4, traffic: true}
+    servfail_rate_pct: {unit: "%", description: "Share of queries answered with SERVFAIL", noise_pct: 20, max_value: 100}
+    latency_p99_ms: {unit: ms, description: "99th percentile resolution latency", noise_pct: 8}
+
+services:
+  - name: web-app
+    kind: service
+    tier: edge
+    team: web
+    description: "Customer-facing web and mobile backend-for-frontend"
+    depends_on: [api-gateway, cluster-dns]
+    profile: service
+    baselines: {request_rate_rps: 300, error_rate_pct: 0.2, latency_p50_ms: 60, latency_p99_ms: 350, cpu_pct: 30, memory_mb: 700}
+    noise_logs:
+      - {level: INFO, template: "GET /{choice:home|portfolio|orders|markets|account} 200 in {ms}ms", rate_per_min: 0.6}
+      - {level: WARN, template: "Slow page render /{choice:portfolio|markets} took {ms}ms", rate_per_min: 0.05}
+      - {level: ERROR, template: "Upstream api-gateway returned 502 for /{choice:quotes|portfolio|orders}", rate_per_min: 0.01}
+
+  - name: api-gateway
+    kind: service
+    tier: edge
+    team: platform
+    description: "Edge API gateway: TLS termination, authentication and routing"
+    depends_on: [auth-service, portfolio-service, orders-service, quotes-service, payments-service, cluster-dns]
+    profile: service
+    baselines: {request_rate_rps: 450, error_rate_pct: 0.3, latency_p50_ms: 25, latency_p99_ms: 180, cpu_pct: 40, memory_mb: 1200}
+    extra_metrics:
+      tls_handshake_errors_per_min: {unit: count/min, description: "Failed TLS handshakes with upstream services", baseline: 0.2, noise_pct: 50}
+    noise_logs:
+      - {level: INFO, template: "{choice:GET|POST} /api/v1/{choice:portfolio|orders|quotes|payments|auth} {choice:200|201|204} {ms}ms", rate_per_min: 0.8}
+      - {level: WARN, template: "upstream reset before headers (upstream={choice:orders-service|portfolio-service|quotes-service})", rate_per_min: 0.02}
+      - {level: ERROR, template: "Client closed request before response (499) path=/api/v1/{choice:quotes|portfolio}", rate_per_min: 0.02}
+
+  - name: auth-service
+    kind: service
+    tier: core
+    team: identity
+    description: "Login, sessions and token issuance (serves mTLS to the gateway)"
+    depends_on: [users-db, session-cache, cluster-dns]
+    profile: service
+    baselines: {request_rate_rps: 80, error_rate_pct: 0.2, latency_p50_ms: 30, latency_p99_ms: 150, cpu_pct: 25, memory_mb: 600}
+    noise_logs:
+      - {level: INFO, template: "Login succeeded for user {n} in {ms}ms", rate_per_min: 0.4}
+      - {level: WARN, template: "Login failed: invalid credentials for user {n}", rate_per_min: 0.05}
+
+  - name: portfolio-service
+    kind: service
+    tier: core
+    team: portfolio
+    description: "Holdings, balances and real-time P&L for customer portfolios"
+    depends_on: [portfolio-db, app-cache, quotes-service, ledger-service, orders-db, cluster-dns]
+    profile: service
+    baselines: {request_rate_rps: 140, error_rate_pct: 0.3, latency_p50_ms: 55, latency_p99_ms: 260, cpu_pct: 35, memory_mb: 1100}
+    extra_metrics:
+      db_pool_wait_ms: {unit: ms, description: "Time requests wait for a database connection", baseline: 3, noise_pct: 25}
+      db_pool_in_use: {unit: count, description: "Database connections in use from the pool", baseline: 12, noise_pct: 10}
+      cache_hit_ratio: {unit: ratio, description: "app-cache hit ratio seen by this service", baseline: 0.95, noise_pct: 1, max_value: 1}
+      db_queries_per_request: {unit: count, description: "Database queries issued per request", baseline: 3, noise_pct: 5}
+    noise_logs:
+      - {level: INFO, template: "Rendered portfolio for account {n} in {ms}ms", rate_per_min: 0.5}
+      - {level: DEBUG, template: "Cache {choice:hit|miss} for positions:{n}", rate_per_min: 0.2}
+
+  - name: orders-service
+    kind: service
+    tier: core
+    team: trading
+    description: "Order entry, validation and routing"
+    depends_on: [orders-db, risk-service, quotes-service, ledger-service, event-bus, cluster-dns]
+    profile: service
+    baselines: {request_rate_rps: 120, error_rate_pct: 0.3, latency_p50_ms: 45, latency_p99_ms: 220, cpu_pct: 35, memory_mb: 900}
+    extra_metrics:
+      db_pool_wait_ms: {unit: ms, description: "Time requests wait for a database connection", baseline: 2, noise_pct: 25}
+      risk_check_latency_ms: {unit: ms, description: "Latency of risk-service checks", baseline: 20, noise_pct: 8}
+    noise_logs:
+      - {level: INFO, template: "Order {id} accepted for account {n} in {ms}ms", rate_per_min: 0.5}
+      - {level: INFO, template: "Order {id} filled qty={n}", rate_per_min: 0.3}
+      - {level: WARN, template: "Order {id} rejected: insufficient buying power", rate_per_min: 0.05}
+
+  - name: risk-service
+    kind: service
+    tier: core
+    team: trading
+    description: "Pre-trade risk and margin checks"
+    depends_on: [orders-db, quotes-service, cluster-dns]
+    profile: service
+    baselines: {request_rate_rps: 110, error_rate_pct: 0.1, latency_p50_ms: 12, latency_p99_ms: 60, cpu_pct: 30, memory_mb: 800}
+    extra_metrics:
+      rules_eval_ms: {unit: ms, description: "Time to evaluate risk rules per order", baseline: 4, noise_pct: 10}
+    noise_logs:
+      - {level: INFO, template: "Risk check passed for order {id} in {ms}ms", rate_per_min: 0.4}
+
+  - name: quotes-service
+    kind: service
+    tier: core
+    team: market-data
+    description: "Real-time quotes and option chains"
+    depends_on: [market-data-vendor, app-cache, cluster-dns]
+    profile: service
+    baselines: {request_rate_rps: 600, error_rate_pct: 0.2, latency_p50_ms: 8, latency_p99_ms: 45, cpu_pct: 45, memory_mb: 900}
+    extra_metrics:
+      vendor_latency_ms: {unit: ms, description: "Latency of the market-data vendor feed", baseline: 35, noise_pct: 8}
+      gc_time_pct: {unit: "%", description: "Share of time spent in garbage collection", baseline: 2, noise_pct: 15, max_value: 100}
+      replicas: {unit: count, description: "Running replicas", baseline: 6, noise_pct: 0}
+    noise_logs:
+      - {level: INFO, template: "Served quote batch size={n} in {ms}ms", rate_per_min: 0.5}
+      - {level: WARN, template: "Vendor feed reconnect after {ms}ms", rate_per_min: 0.02}
+
+  - name: payments-service
+    kind: service
+    tier: core
+    team: payments
+    description: "Deposits and withdrawals through the bank gateway"
+    depends_on: [bank-gateway, ledger-service, event-bus, cluster-dns]
+    profile: service
+    baselines: {request_rate_rps: 40, error_rate_pct: 0.2, latency_p50_ms: 120, latency_p99_ms: 600, cpu_pct: 20, memory_mb: 700}
+    extra_metrics:
+      bank_gateway_latency_ms: {unit: ms, description: "Latency of calls to bank-gateway", baseline: 180, noise_pct: 8}
+      bank_gateway_error_rate_pct: {unit: "%", description: "Share of bank-gateway calls failing", baseline: 0.3, noise_pct: 20, max_value: 100}
+    noise_logs:
+      - {level: INFO, template: "Deposit {id} submitted amount={n}", rate_per_min: 0.2}
+      - {level: INFO, template: "Deposit {id} settled", rate_per_min: 0.2}
+
+  - name: ledger-service
+    kind: service
+    tier: core
+    team: payments
+    description: "Double-entry ledger: balances, buying power and postings"
+    depends_on: [ledger-db, event-bus, cluster-dns]
+    profile: service
+    baselines: {request_rate_rps: 90, error_rate_pct: 0.1, latency_p50_ms: 25, latency_p99_ms: 120, cpu_pct: 30, memory_mb: 900}
+    extra_metrics:
+      consumer_lag: {unit: messages, description: "Unprocessed messages on ledger.postings", baseline: 15, noise_pct: 20}
+      db_query_latency_ms: {unit: ms, description: "Average ledger-db query latency", baseline: 6, noise_pct: 10}
+    noise_logs:
+      - {level: INFO, template: "Posted journal entry {id} ({n} lines)", rate_per_min: 0.4}
+
+  - name: notification-service
+    kind: service
+    tier: support
+    team: engagement
+    description: "Trade confirmations and account emails (consumes event-bus)"
+    depends_on: [event-bus, email-provider, cluster-dns]
+    profile: service
+    baselines: {request_rate_rps: 30, error_rate_pct: 0.1, latency_p50_ms: 40, latency_p99_ms: 200, cpu_pct: 15, memory_mb: 500}
+    extra_metrics:
+      consumer_lag: {unit: messages, description: "Unprocessed messages on orders.fills", baseline: 20, noise_pct: 20}
+      emails_sent_per_min: {unit: count/min, description: "Emails sent per minute", baseline: 25, noise_pct: 10, traffic: true}
+    noise_logs:
+      - {level: INFO, template: "Sent trade confirmation email {id}", rate_per_min: 0.3}
+
+  - name: users-db
+    kind: datastore
+    tier: data
+    team: identity
+    description: "PostgreSQL: users and credentials"
+    profile: postgres
+    baselines: {cpu_pct: 20, active_connections: 40, queries_per_sec: 300, lock_wait_ms: 1, replication_lag_s: 0.2, disk_used_pct: 55}
+    noise_logs:
+      - {level: INFO, template: "checkpoint complete: wrote {n} buffers", rate_per_min: 0.05}
+
+  - name: portfolio-db
+    kind: datastore
+    tier: data
+    team: portfolio
+    description: "PostgreSQL: holdings and positions"
+    profile: postgres
+    baselines: {cpu_pct: 30, active_connections: 35, queries_per_sec: 900, lock_wait_ms: 1, replication_lag_s: 0.2, disk_used_pct: 62}
+    noise_logs:
+      - {level: INFO, template: "checkpoint complete: wrote {n} buffers", rate_per_min: 0.05}
+
+  - name: orders-db
+    kind: datastore
+    tier: data
+    team: trading
+    description: "PostgreSQL: orders, fills and order history"
+    profile: postgres
+    baselines: {cpu_pct: 35, active_connections: 60, queries_per_sec: 1200, lock_wait_ms: 2, replication_lag_s: 0.3, disk_used_pct: 70}
+    noise_logs:
+      - {level: INFO, template: "checkpoint complete: wrote {n} buffers", rate_per_min: 0.05}
+      - {level: INFO, template: "duration: {ms} ms statement: SELECT id, status FROM orders WHERE account_id = {n} app=orders-service", rate_per_min: 0.1}
+
+  - name: ledger-db
+    kind: datastore
+    tier: data
+    team: payments
+    description: "PostgreSQL: ledger entries and balances"
+    profile: postgres
+    baselines: {cpu_pct: 30, active_connections: 45, queries_per_sec: 800, lock_wait_ms: 1, replication_lag_s: 0.2, disk_used_pct: 66}
+    noise_logs:
+      - {level: INFO, template: "checkpoint complete: wrote {n} buffers", rate_per_min: 0.05}
+
+  - name: app-cache
+    kind: datastore
+    tier: data
+    team: platform
+    description: "Redis: shared application cache (positions, quotes)"
+    profile: redis
+    baselines: {cpu_pct: 25, memory_used_pct: 60, evictions_per_sec: 2, hit_ratio: 0.95, connected_clients: 120}
+    noise_logs:
+      - {level: INFO, template: "Background saving started by pid {n}", rate_per_min: 0.02}
+
+  - name: session-cache
+    kind: datastore
+    tier: data
+    team: identity
+    description: "Redis: login sessions"
+    profile: redis
+    baselines: {cpu_pct: 15, memory_used_pct: 40, evictions_per_sec: 0.5, hit_ratio: 0.98, connected_clients: 60}
+
+  - name: event-bus
+    kind: datastore
+    tier: data
+    team: platform
+    description: "Kafka: order fills, payment events and ledger postings"
+    profile: kafka
+    baselines: {disk_used_pct: 64, produce_error_rate_pct: 0.05, under_replicated_partitions: 0, bytes_in_per_sec: 2500000}
+    noise_logs:
+      - {level: INFO, template: "[Broker {int:1-3}] Rolled new log segment for partition {choice:orders.fills|payments.events|ledger.postings}-{int:0-11}", rate_per_min: 0.1}
+
+  - name: cluster-dns
+    kind: infrastructure
+    tier: platform
+    team: platform
+    description: "CoreDNS: service discovery for every service, per availability zone"
+    profile: dns
+    baselines: {queries_per_sec: 5000, servfail_rate_pct: 0.05, latency_p99_ms: 4}
+    noise_logs:
+      - {level: INFO, template: "plugin/reload: Running configuration SHA512 = {id}", rate_per_min: 0.01}
+
+  - {name: market-data-vendor, kind: external, tier: external, team: vendor, description: "Third-party market data feed"}
+  - {name: bank-gateway, kind: external, tier: external, team: vendor, description: "Third-party bank payments gateway"}
+  - {name: email-provider, kind: external, tier: external, team: vendor, description: "Third-party transactional email provider"}
+
+background_changes:
+  deploys: 8
+  configs: 5
+  quiet_period: "2h"
+  horizon: "7d"
+  authors: [alice, bob, chen, dmitri, esha, farid, grace]
+  deploy_summaries:
+    - "Bump dependencies"
+    - "Improve request logging"
+    - "Add metrics for cache usage"
+    - "Refactor configuration loading"
+    - "Fix flaky retry in HTTP client"
+    - "Update translations"
+    - "Tidy up feature flag checks"
+    - "Small UI copy changes"
+  config_changes:
+    - {config_key: log.level, old: "INFO", new: "DEBUG", source: runtime_config, note: "Temporary debug logging"}
+    - {config_key: feature.new_onboarding_flow, old: "0%", new: "5%", source: feature_flag, note: "Gradual rollout"}
+    - {config_key: http.client.timeout_ms, old: "2000", new: "2500", source: runtime_config, note: "Align client timeouts"}
+    - {config_key: cache.ttl_seconds, old: "60", new: "90", source: runtime_config, note: "Reduce cache churn"}
+    - {config_key: feature.dark_mode, old: "false", new: "true", source: feature_flag, note: "Enable for all users"}
+
+history:
+  - key: h_orders_npe
+    date: "2025-06-12"
+    title: "orders-service 500s after release: null pointer in order validation"
+    services: [orders-service]
+    symptoms: "Spike of HTTP 500 on order placement minutes after a deploy; NullPointerException in a validator"
+    root_cause: "Regression in order validation code shipped in a deployment"
+    resolution: "Rolled back the deployment and added a unit test"
+  - key: h_bank_latency
+    date: "2025-08-21"
+    title: "Deposits timing out: bank-gateway latency degradation"
+    services: [payments-service, bank-gateway]
+    symptoms: "payments-service errors and timeouts calling bank-gateway; provider latency rose sharply"
+    root_cause: "Incident on the third-party bank gateway (vendor side)"
+    resolution: "Enabled queued deposits and escalated to the vendor"
+  - key: h_pool_traffic
+    date: "2025-09-03"
+    title: "portfolio-service connection pool exhaustion during a traffic spike"
+    services: [portfolio-service, portfolio-db]
+    symptoms: "Portfolio page timeouts; connection pool wait time high; request rate high during a market rally"
+    root_cause: "Traffic spike exceeded the connection pool capacity"
+    resolution: "Scaled out portfolio-service and tuned the pool size"
+  - key: h_public_cert
+    date: "2025-04-02"
+    title: "Expired public TLS certificate on the edge load balancer"
+    services: [api-gateway]
+    symptoms: "Browsers reported certificate errors; mobile login failed"
+    root_cause: "Public certificate expired because the auto-renewal job was failing"
+    resolution: "Renewed the certificate and added expiry alerting"
+  - key: h_notif_lag
+    date: "2025-10-14"
+    title: "Notification delays due to a slow consumer after a deploy"
+    services: [notification-service, event-bus]
+    symptoms: "Trade confirmation emails delayed; consumer lag growing on notification-service"
+    root_cause: "notification-service deploy introduced a slow template renderer"
+    resolution: "Rolled back notification-service"
+  - key: h_dns_zone
+    date: "2025-03-11"
+    title: "DNS resolver misconfiguration broke service discovery in one zone"
+    services: [cluster-dns, api-gateway]
+    symptoms: "Intermittent upstream connect errors from the gateway in one availability zone; SERVFAIL answers"
+    root_cause: "Bad forwarder address in the CoreDNS config pushed to one zone"
+    resolution: "Reverted the CoreDNS change and added config validation"
+  - key: h_market_open
+    date: "2025-12-08"
+    title: "Market-open traffic surge saturated quotes-service"
+    services: [quotes-service, api-gateway]
+    symptoms: "Quotes slow and erroring at market open; CPU at max; autoscaler at max replicas; client retries"
+    root_cause: "Traffic surge beyond capacity amplified by client retries"
+    resolution: "Raised the autoscaler maximum and added retry budgets with jitter"
+  - key: h_portfolio_leak
+    date: "2025-05-19"
+    title: "Memory leak in portfolio-service after a caching change"
+    services: [portfolio-service]
+    symptoms: "Periodic out-of-memory restarts every few hours; memory sawtooth"
+    root_cause: "Unbounded in-memory cache introduced in a release"
+    resolution: "Rolled back and bounded the cache"
+  - key: h_risk_rules
+    date: "2025-02-17"
+    title: "risk-service 503s after a rules engine upgrade"
+    services: [risk-service, orders-service]
+    symptoms: "Orders rejected because risk checks failed; risk-service error rate spiked after a deploy"
+    root_cause: "Rules engine upgrade failed to load a rule set"
+    resolution: "Rolled back risk-service"
+  - key: h_flag_n_plus_one
+    date: "2025-07-09"
+    title: "Feature flag rollout caused N+1 queries on portfolio-db"
+    services: [portfolio-service, portfolio-db]
+    symptoms: "Database CPU saturated right after a feature flag was ramped up; queries per request jumped"
+    root_cause: "New code path behind a feature flag issued one query per position"
+    resolution: "Ramped the flag down and batched the queries"
+  - key: h_lb_idle
+    date: "2025-01-22"
+    title: "Sporadic 502s from a load balancer idle-timeout mismatch"
+    services: [web-app, api-gateway]
+    symptoms: "Sporadic 502s for a small share of users; upstream reset before headers"
+    root_cause: "Load balancer idle timeout shorter than the gateway keep-alive timeout"
+    resolution: "Aligned the timeouts"
+  - key: h_pod_evictions
+    date: "2025-09-29"
+    title: "orders-service pod evictions during a node upgrade"
+    services: [orders-service]
+    symptoms: "Sporadic connection resets on order calls during cluster maintenance"
+    root_cause: "Node pool upgrade evicted pods without connection draining"
+    resolution: "Added preStop hooks and PodDisruptionBudgets"
+  - key: h_redis_evictions
+    date: "2025-11-04"
+    title: "Redis eviction storm slowed portfolio reads"
+    services: [portfolio-service, app-cache]
+    symptoms: "Portfolio and orders reads slow with p99 of 4-6 seconds; cache hit ratio dropped; database load increased"
+    root_cause: "app-cache hit its memory limit and mass evictions pushed load to the databases"
+    resolution: "Increased cache memory and tuned TTLs"
+  - key: h_ledger_lock
+    date: "2024-12-03"
+    title: "Ledger migration locked a table during backfill"
+    services: [ledger-service, ledger-db]
+    symptoms: "Balance reads slow; lock waits on ledger-db during a schema migration backfill"
+    root_cause: "Migration added a column and backfilled it while holding a long lock"
+    resolution: "Paused the migration and rewrote it as a batched backfill"
+  - key: h_double_charge
+    date: "2024-10-15"
+    title: "Duplicate deposit charges due to a retry bug"
+    services: [payments-service]
+    symptoms: "Some customers were charged twice for a deposit"
+    root_cause: "Retries without idempotency keys"
+    resolution: "Added idempotency keys and refunded customers"
+  - key: h_clock_skew
+    date: "2025-02-26"
+    title: "Clock skew on gateway nodes confused log timelines"
+    services: [api-gateway]
+    symptoms: "Log timestamps from some gateway nodes were minutes off, making errors appear before their cause"
+    root_cause: "chrony misconfiguration on one node pool"
+    resolution: "Fixed the NTP configuration and added clock-offset alerts"
