@@ -45,7 +45,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 5.15 Tune limits, critic effort & eval concurrency
 - [x] 6.1 Ground truth & scoring
 - [x] 6.2 Pricing
-- [ ] 6.3 Eval runner
+- [x] 6.3 Eval runner
 - [ ] 6.4 Summary & eval CLI
 - [ ] 6.5 Cassettes, replay test & live smoke
 - [ ] 7.1 Docs
@@ -108,3 +108,4 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - 2026-10-20: 5.15 done. Step 1 changed two test assertions, as the plan directs (test_settings.py: max_tool_calls 250; test_agents_catalog.py: critic effort medium). Both failed before the defaults changed. Note: execution guide section 2.4 says never to change a test assertion; this task's plan step takes precedence. The two test files: 5 passed. Full suite 237 passed; mypy clean. M5 check done: Milestone 5 complete.
 - 2026-10-20: 6.1 done. test_evaluation_scoring.py (4) + test_scoring_oracle.py (12, one per scenario): 16 passed. The oracle scores 100% on every scenario and the null report matches the expected status.
 - 2026-10-20: 6.2 done. test_evaluation_pricing.py: 5 passed.
+- 2026-10-20: 6.3 done. test_eval_runner.py: 2 passed (concurrency, resume and the error sidecar; scripted LLM, no API calls).
