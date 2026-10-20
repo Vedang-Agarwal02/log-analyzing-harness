@@ -7,7 +7,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 1.2 Incident & evidence models
 - [x] 1.3 Findings, hypotheses, critique, plan models
 - [x] 1.4 Report & state models
-- [ ] 2.1 Scenario spec models
+- [x] 2.1 Scenario spec models
 - [ ] 2.2 Platform model & platform.yaml
 - [ ] 2.3 Generator
 - [ ] 2.4 Scenarios INC-01..06
@@ -57,3 +57,4 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - 2026-10-20: 1.2 done. test_domain_incident_evidence.py: 5 passed.
 - 2026-10-20: 1.3 done. test_domain_agent_outputs.py: 5 passed.
 - 2026-10-20: 1.4 done. test_domain_report_state.py: 11 passed. M1 check: pytest 26 passed, mypy clean.
+- 2026-10-20: 2.1 done. test_datagen_spec.py: 12 passed.
