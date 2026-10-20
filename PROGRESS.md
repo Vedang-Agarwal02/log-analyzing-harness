@@ -30,7 +30,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 4.6 Change, topology, history, evidence tools & registry
 - [x] 5.1 Prompts
 - [x] 5.2 Settings & config
-- [ ] 5.3 Output tools & validators
+- [x] 5.3 Output tools & validators
 - [ ] 5.4 Agent catalog
 - [ ] 5.5 Context builders
 - [ ] 5.6 Policies
@@ -86,3 +86,4 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - 2026-10-20: M4 check: pytest 164 passed, mypy clean (no ignores needed).
 - 2026-10-20: 5.1 done. test_prompts.py: 8 passed. Eight prompt files created in prompts/.
 - 2026-10-20: 5.2 done. test_settings.py: 3 passed.
+- 2026-10-20: 5.3 done. test_agents_outputs.py: 6 passed.
