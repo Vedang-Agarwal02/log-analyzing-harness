@@ -22,7 +22,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 3.8 Anthropic client
 - [x] 3.9 Recording client
 - [x] 3.10 Gemini client & provider routing
-- [ ] 4.1 Backend ports
+- [x] 4.1 Backend ports
 - [ ] 4.2 Analysis helpers
 - [ ] 4.3 Simulated backends
 - [ ] 4.4 Fault injector
@@ -77,3 +77,4 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - 2026-10-20: M3 check: pytest 136 passed, mypy clean (no ignores needed).
 - TYPE-IGNORE: src/investigator/datagen/generate.py:369 `[assignment]` (loop variable `service` reused from a PlatformService loop; no logic change).
 - 2026-10-20: Plan updated in docs/design/ (do Task 3.10 next, before 4.1): new Task 3.10 adds the Gemini client and model-id provider routing; Tasks 5.2, 5.9, 5.10, 6.2, 6.5 and 7.x now include the Gemini wiring. The Task 2.3 ignore above is fine as is (the plan now renames the variable instead).
+- 2026-10-20: 4.1 done. test_backends_base.py: 2 passed.
