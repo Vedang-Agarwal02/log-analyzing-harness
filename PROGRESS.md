@@ -33,7 +33,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 5.3 Output tools & validators
 - [x] 5.4 Agent catalog
 - [x] 5.5 Context builders
-- [ ] 5.6 Policies
+- [x] 5.6 Policies
 - [ ] 5.7 Scheduler
 - [ ] 5.8 Coordinator
 - [ ] 5.9 Baseline, Markdown report & runtime
@@ -89,3 +89,4 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - 2026-10-20: 5.3 done. test_agents_outputs.py: 6 passed.
 - 2026-10-20: 5.4 done. test_agents_catalog.py: 2 passed.
 - 2026-10-20: 5.5 done. test_agents_context.py: 5 passed.
+- 2026-10-20: 5.6 done. test_orchestrator_policies.py: 4 passed. Full suite: 192 passed.
