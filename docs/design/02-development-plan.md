@@ -6,7 +6,7 @@
 
 **Architecture:** A thin, provider-neutral agent harness (agent loop, tool registry and executor, budget, hooks, tracing) runs every agent. A deterministic coordinator executes an LLM planner's task DAG in parallel on a single-writer blackboard. A critic drives bounded feedback rounds, and a reporter writes the final report. Tools read from simulated backends (generated from YAML scenarios) through a fault injector.
 
-**Tech Stack:** Python 3.14 · uv · anthropic 1.15+ (Claude Opus 5.5, `claude-opus-5-5`) · pydantic 2.14+ · PyYAML · Typer · Rich · pytest + pytest-asyncio · ruff · mypy.
+**Tech Stack:** Python 3.14 · uv · anthropic 1.15+ (Claude Opus 5.5, `claude-opus-5-5`) · google-genai 2.28+ (Gemini, e.g. `gemini-4-argon`) · pydantic 2.14+ · PyYAML · Typer · Rich · pytest + pytest-asyncio · ruff · mypy.
 
 **Spec:** `01-strategy-and-architecture.md` (same folder). Read sections 3–7 and 9–10 once, before Task 0.1, for background. When this plan and the spec disagree, **this plan wins**: it contains the final names and code.
 
@@ -15,10 +15,10 @@
 Every task implicitly includes these rules.
 
 - Python `>=3.12` is required; develop and test on **3.14** (`.python-version` contains `3.14`).
-- Runtime dependencies, exactly these and no others: `anthropic>=1.15,<2`, `pydantic>=2.14,<3`, `pyyaml>=6.0.3,<7`, `typer>=0.27,<1`, `rich>=15,<16`. Optional extra `mcp`: `mcp>=1.30,<2`.
+- Runtime dependencies, exactly these and no others: `anthropic>=1.15,<2`, `pydantic>=2.14,<3`, `pyyaml>=6.0.3,<7`, `typer>=0.27,<1`, `rich>=15,<16`, and `google-genai>=2.28,<3` (added in Task 3.10 with `uv add`). Optional extra `mcp`: `mcp>=1.30,<2`.
 - Dev dependencies: `pytest>=9.1,<10`, `pytest-asyncio>=1.4,<2`, `ruff>=0.17,<0.18`, `mypy>=2.4,<3`, `types-PyYAML>=6.0`.
-- Default model id: `claude-opus-5-5`, used for every agent and the baseline. Never append a date suffix to a model id.
-- Never send `temperature`, `top_p`, `top_k`, `thinking: {type: "disabled"}`, `budget_tokens`, or a forced `tool_choice` (`any`/`tool`). All of these return HTTP 400 on Claude Opus 5.5.
+- Default model id: `claude-opus-5-5`, used for every agent and the baseline. Never append a date suffix to a model id. Model ids starting with `gemini-` (e.g. `gemini-4-argon`) run on Gemini instead (Task 3.10).
+- Never send `temperature`, `top_p`, `top_k`, `thinking: {type: "disabled"}`, `budget_tokens`, or a forced `tool_choice` (`any`/`tool`). All of these return HTTP 400 on Claude Opus 5.5. The Gemini adapter also leaves sampling parameters at their defaults.
 - Package name `investigator`, under `src/investigator/`. CLI command `investigator`.
 - All timestamps are timezone-aware UTC. Use `investigator.domain.common.UtcDatetime` in models and `iso()` to format.
 - Everything that reaches a prompt or a tool result is deterministic: JSON with sorted keys (`investigator.jsonutil.canonical_json`), collections sorted by stable keys, and no timestamps, UUIDs or run IDs.
@@ -60,7 +60,7 @@ These are the conditions most likely to break the software in real use that ordi
 9. **Keep your session transcript.** The assignment requires the coding-assistant transcript; export it to `docs/transcripts/` at the end (Task 7.4).
 10. **API key and cost.** Only these steps call the real API (they need `ANTHROPIC_API_KEY` and cost money):
     - Task 5.10 Step 5
-    - Task 6.5 Steps 3–6
+    - Task 6.5 Steps 3–6, and Step 7 (optional, Gemini; needs `GEMINI_API_KEY`)
     - Task 7.4 Step 4
     - Task 8.2 Step 1
 
@@ -83,6 +83,7 @@ These are the conditions most likely to break the software in real use that ordi
 | Limits (defaults) | 3 rounds; 4 parallel tasks; 12 tasks total; 2 attempts per task; 3 attempts per tool call; tool timeout 8 s; budget 1.5M tokens / 80 LLM calls / 120 tool calls / 900 s, with a reporter reserve of 150K tokens / 8 calls / 120 s |
 | Effort | planner, observability, dependency, reporter: `medium`; reasoning, critic, single_agent: `high` |
 | Streaming | `messages.stream(...)` + `get_final_message()`, `max_tokens` 32000 |
+| LLM providers | Chosen from the model id by `harness/routing.py`: `claude-*` → Anthropic client (default `claude-opus-5-5`), `gemini-*` → Gemini client (`generateContent` through `google-genai`). Per-agent `model` entries in `config/agents.yaml` may mix providers |
 | Scenarios | 12: `INC-01` … `INC-12` |
 
 ## Final repository layout
@@ -103,7 +104,7 @@ incident-investigator/
 │   ├── __init__.py  jsonutil.py  errors.py  callctx.py  settings.py  runtime.py  cli.py
 │   ├── domain/       common.py incident.py evidence.py findings.py hypotheses.py critique.py plan.py report.py state.py
 │   ├── datagen/      spec.py platform.py generate.py
-│   ├── harness/      llm.py schema.py tools.py retry.py budget.py hooks.py tracing.py executor.py scripted.py agent.py anthropic_client.py recording.py
+│   ├── harness/      llm.py schema.py tools.py retry.py budget.py hooks.py tracing.py executor.py scripted.py agent.py anthropic_client.py recording.py gemini_client.py routing.py
 │   ├── backends/     base.py analysis.py simulated.py faults.py
 │   ├── tools/        common.py logs.py metrics.py changes.py topology.py history.py evidence_tool.py registry.py (+ mcp_toolset.py, optional M8)
 │   ├── agents/       outputs.py catalog.py context.py
@@ -125,7 +126,7 @@ incident-investigator/
 | M0 Scaffold | 0.1 Project scaffold |
 | M1 Domain | 1.1 Common types · 1.2 Incident & evidence · 1.3 Findings, hypotheses, critique, plan · 1.4 Report & state |
 | M2 Dataset | 2.1 Scenario spec · 2.2 Platform model & platform.yaml · 2.3 Generator · 2.4 Scenarios INC-01–06 · 2.5 Scenarios INC-07–12 |
-| M3 Harness | 3.1 Neutral modules & LLM types · 3.2 Schema & tools · 3.3 Retry & budget · 3.4 Hooks & tracing · 3.5 Tool executor · 3.6 Scripted LLM · 3.7 Agent loop · 3.8 Anthropic client · 3.9 Recording client |
+| M3 Harness | 3.1 Neutral modules & LLM types · 3.2 Schema & tools · 3.3 Retry & budget · 3.4 Hooks & tracing · 3.5 Tool executor · 3.6 Scripted LLM · 3.7 Agent loop · 3.8 Anthropic client · 3.9 Recording client · 3.10 Gemini client & provider routing |
 | M4 Backends & tools | 4.1 Backend ports · 4.2 Analysis helpers · 4.3 Simulated backends · 4.4 Fault injector · 4.5 Log & metric tools · 4.6 Change, topology, history, evidence tools & registry |
 | M5 Agents & orchestration | 5.1 Prompts · 5.2 Settings & config · 5.3 Output tools & validators · 5.4 Agent catalog · 5.5 Context builders · 5.6 Policies · 5.7 Scheduler · 5.8 Coordinator · 5.9 Baseline, Markdown report & runtime · 5.10 CLI · 5.11 Integration tests · 5.12 Architecture tests |
 | M6 Evaluation | 6.1 Ground truth & scoring · 6.2 Pricing · 6.3 Eval runner · 6.4 Summary & eval CLI · 6.5 Cassettes, replay test & live smoke |
@@ -357,6 +358,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [ ] 3.7 Agent loop
 - [ ] 3.8 Anthropic client
 - [ ] 3.9 Recording client
+- [ ] 3.10 Gemini client & provider routing
 - [ ] 4.1 Backend ports
 - [ ] 4.2 Analysis helpers
 - [ ] 4.3 Simulated backends
@@ -2966,13 +2968,15 @@ def _build_logs(
         ]
     rows.sort()
     records: list[dict[str, Any]] = []
-    for index, (ts, service, level, message) in enumerate(rows):
-        digest = hashlib.sha1(f"{spec.id}|{index}|{service}|{iso(ts)}".encode()).hexdigest()[:10]
+    for index, (ts, service_name, level, message) in enumerate(rows):
+        digest = hashlib.sha1(f"{spec.id}|{index}|{service_name}|{iso(ts)}".encode()).hexdigest()[
+            :10
+        ]
         records.append(
             {
                 "log_id": f"log-{digest}",
                 "ts": iso(ts),
-                "service": service,
+                "service": service_name,
                 "level": level,
                 "message": message,
             }
@@ -7146,7 +7150,7 @@ class RecordingLLM:
 Run: `uv run pytest tests/unit/test_harness_recording.py -q`
 Expected: `3 passed`
 
-- [ ] **Step 5: Milestone check and commit**
+- [ ] **Step 5: Full check and commit**
 
 Run: `uv run pytest -q && uv run mypy`
 Expected: all tests pass. If mypy reports errors, apply the type-ignore rule.
@@ -7154,6 +7158,824 @@ Expected: all tests pass. If mypy reports errors, apply the type-ignore rule.
 ```bash
 git add -A
 git commit -m "feat(harness): record/replay LLM client for offline regression tests"
+```
+
+---
+
+### Task 3.10: Gemini client and provider routing
+
+Adds Gemini as a second provider. The model id picks the provider: ids starting with `claude-` go to the Anthropic client, ids starting with `gemini-` go to this Gemini client. Every agent, tool and test stays provider-neutral.
+
+**Files:**
+- Modify: `pyproject.toml` and `uv.lock` (through `uv add`), `.env.example`
+- Create: `src/investigator/harness/gemini_client.py`, `src/investigator/harness/routing.py`
+- Test: `tests/unit/test_harness_gemini_client.py`, `tests/unit/test_harness_routing.py`
+
+**Interfaces:**
+- Consumes: the neutral types in `investigator.harness.llm` and `canonical_json` (Task 3.1).
+- Produces:
+  - `GeminiSettings(max_retries=3, timeout_s=600.0, tool_mode="AUTO")`
+  - `GeminiClient(settings=None, client=None)` with `async complete(request) -> LLMResponse`
+  - Helpers (tested directly): `thinking_config`, `gemini_schema`, `part_to_dict`, `part_from_dict`, `to_gemini_contents`, `build_config`, `parse_response`, `EMPTY_TURN_TEXT`
+  - `PROVIDER_PREFIXES`, `provider_for(model) -> str` (raises `ValueError` for an unknown prefix), `RoutingLLM(factories)` with `client_for(model)` and `async complete(request)`
+- Used by: Task 5.2 (`LLMConfig.gemini_settings()`) and Task 5.9 (`build_llm` returns a `RoutingLLM`).
+
+Background:
+- Gemini attaches **thought signatures** to response parts. They must be sent back unchanged, on the same part, in the same order, or the next request fails with HTTP 400.
+- The adapter stores every response part in `LLMResponse.raw` and rebuilds it exactly. Never edit `raw`.
+- It uses the `generateContent` API of the `google-genai` SDK.
+
+- [ ] **Step 1: Add the dependency and the key placeholder**
+
+Run: `uv add "google-genai>=2.28,<3"`
+Expected: a `Resolved N packages` line. `pyproject.toml` now lists `"google-genai>=2.28,<3"` under `dependencies`, and `uv.lock` changed.
+
+Add these two lines at the end of `.env.example`:
+
+```text
+# Only needed for models whose id starts with gemini- (GOOGLE_API_KEY also works).
+GEMINI_API_KEY=
+```
+
+- [ ] **Step 2: Write the failing tests**
+
+#### File: `tests/unit/test_harness_gemini_client.py`
+```python
+import dataclasses
+import json
+from types import SimpleNamespace
+from typing import Any
+
+import pytest
+from google.genai import errors, types
+
+from investigator.harness.gemini_client import (
+    EMPTY_TURN_TEXT,
+    GeminiClient,
+    GeminiSettings,
+    build_config,
+    gemini_schema,
+    parse_response,
+    part_from_dict,
+    part_to_dict,
+    thinking_config,
+    to_gemini_contents,
+)
+from investigator.harness.llm import (
+    AssistantMessage,
+    LLMError,
+    LLMRequest,
+    ToolCall,
+    ToolResultPart,
+    ToolSpec,
+    UserMessage,
+    UserText,
+    assistant_message,
+)
+
+SIGNATURE = b"\x00\xffopaque-signature"
+TOOL = ToolSpec(
+    name="query_logs",
+    description="Search logs.",
+    input_schema={
+        "type": "object",
+        "properties": {
+            "service": {"type": "string", "minLength": 1, "description": "Service name"},
+            "level": {
+                "anyOf": [{"type": "string", "enum": ["WARN", "ERROR"]}, {"type": "null"}],
+                "default": None,
+            },
+        },
+        "required": ["service"],
+        "additionalProperties": False,
+    },
+)
+
+
+def _request(*messages: Any, model: str = "gemini-4-argon", effort: str = "medium") -> LLMRequest:
+    first = UserMessage(parts=(UserText("Investigate."),))
+    return LLMRequest(
+        agent_name="observability",
+        model=model,
+        system="You are careful.",
+        messages=(first, *messages),
+        tools=(TOOL,),
+        max_tokens=32000,
+        effort=effort,
+    )
+
+
+def _response(
+    *parts: types.Part, finish: str = "STOP", **usage: int
+) -> types.GenerateContentResponse:
+    return types.GenerateContentResponse(
+        candidates=[
+            types.Candidate(
+                content=types.Content(role="model", parts=list(parts)),
+                finish_reason=types.FinishReason(finish),
+            )
+        ],
+        usage_metadata=types.GenerateContentResponseUsageMetadata(**usage),
+        model_version="gemini-4-argon",
+    )
+
+
+def _call(
+    name: str, call_id: str | None, signature: bytes | None = None, **args: Any
+) -> types.Part:
+    return types.Part(
+        function_call=types.FunctionCall(id=call_id, name=name, args=args),
+        thought_signature=signature,
+    )
+
+
+class FakeModels:
+    def __init__(self, *results: Any) -> None:
+        self.results = list(results)
+        self.calls: list[dict[str, Any]] = []
+
+    async def generate_content(self, **kwargs: Any) -> types.GenerateContentResponse:
+        self.calls.append(kwargs)
+        result = self.results.pop(0)
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+
+def _client(*results: Any) -> tuple[GeminiClient, FakeModels]:
+    models = FakeModels(*results)
+    return GeminiClient(
+        GeminiSettings(), client=SimpleNamespace(aio=SimpleNamespace(models=models))
+    ), models
+
+
+def test_thinking_config_maps_effort_per_model_family() -> None:
+    assert thinking_config("gemini-4-argon", "low").thinking_level == types.ThinkingLevel.LOW
+    assert (
+        thinking_config("gemini-3.8-flash", "medium").thinking_level == types.ThinkingLevel.MEDIUM
+    )
+    for effort in ("high", "xhigh", "max"):
+        config = thinking_config("gemini-4-argon", effort)
+        assert config.thinking_level == types.ThinkingLevel.HIGH and config.thinking_budget is None
+    legacy = thinking_config("gemini-2.5-pro", "low")
+    assert legacy.thinking_budget == 1024 and legacy.thinking_level is None
+    assert thinking_config("gemini-2.5-flash", "high").thinking_budget == -1
+
+
+def test_gemini_schema_keeps_only_supported_keywords() -> None:
+    schema = {
+        "type": "object",
+        "properties": {
+            "title": {"type": "string", "minLength": 1, "default": "x"},
+            "kind": {"const": "a"},
+            "when": {
+                "anyOf": [{"type": "string", "format": "date-time"}, {"type": "null"}],
+                "default": None,
+            },
+            "tags": {
+                "type": "array",
+                "items": {"type": "string", "pattern": "^[a-z]+$"},
+                "minItems": 1,
+            },
+        },
+        "required": ["title"],
+        "additionalProperties": False,
+    }
+    assert gemini_schema(schema) == {
+        "type": "object",
+        "properties": {
+            "title": {"type": "string"},
+            "kind": {"enum": ["a"]},
+            "when": {"anyOf": [{"type": "string", "format": "date-time"}, {"type": "null"}]},
+            "tags": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        },
+        "required": ["title"],
+        "additionalProperties": False,
+    }
+
+
+def test_build_config_declares_tools_and_disables_automatic_calls() -> None:
+    config = build_config(_request(), GeminiSettings(tool_mode="VALIDATED"))
+    assert config.system_instruction == "You are careful." and config.max_output_tokens == 32000
+    assert (
+        config.thinking_config is not None
+        and config.thinking_config.thinking_level == types.ThinkingLevel.MEDIUM
+    )
+    assert config.tools is not None
+    [tool] = config.tools
+    assert isinstance(tool, types.Tool) and tool.function_declarations is not None
+    [declaration] = tool.function_declarations
+    assert declaration.name == "query_logs"
+    assert declaration.parameters_json_schema == gemini_schema(TOOL.input_schema)
+    assert config.tool_config is not None and config.tool_config.function_calling_config is not None
+    assert (
+        config.tool_config.function_calling_config.mode == types.FunctionCallingConfigMode.VALIDATED
+    )
+    assert (
+        config.automatic_function_calling is not None
+        and config.automatic_function_calling.disable is True
+    )
+    assert config.temperature is None and config.top_p is None
+
+
+def test_parts_round_trip_losslessly_through_json() -> None:
+    original = _call("query_logs", "call-1", SIGNATURE, service="orders-service")
+    stored = part_to_dict(original)
+    restored = part_from_dict(json.loads(json.dumps(stored)))
+    assert restored.thought_signature == SIGNATURE
+    assert restored.function_call is not None and restored.function_call.args == {
+        "service": "orders-service"
+    }
+    text_with_signature = types.Part(text="", thought_signature=SIGNATURE)
+    assert part_from_dict(part_to_dict(text_with_signature)).thought_signature == SIGNATURE
+
+
+def test_parse_response_maps_calls_text_usage_and_model() -> None:
+    response = _response(
+        types.Part(text="private reasoning", thought=True),
+        types.Part(text="Checking the logs."),
+        _call("query_logs", "call-1", SIGNATURE, service="orders-service"),
+        prompt_token_count=1000,
+        cached_content_token_count=400,
+        candidates_token_count=50,
+        thoughts_token_count=30,
+    )
+    parsed = parse_response(response, _request(), latency_s=0.5)
+    assert parsed.text == "Checking the logs."
+    assert parsed.tool_calls == (
+        ToolCall(id="call-1", name="query_logs", arguments={"service": "orders-service"}),
+    )
+    assert parsed.stop_reason == "tool_use" and parsed.model == "gemini-4-argon"
+    assert parsed.usage.input_tokens == 600 and parsed.usage.cache_read_tokens == 400
+    assert parsed.usage.output_tokens == 80 and parsed.usage.cache_write_tokens == 0
+    assert len(parsed.raw) == 3 and json.dumps(parsed.raw)
+
+
+def test_missing_call_ids_get_stable_unique_ids() -> None:
+    response = _response(
+        _call("query_logs", None, service="a"), _call("query_logs", None, service="b")
+    )
+    first = parse_response(response, _request(), latency_s=0.0)
+    again = parse_response(response, _request(), latency_s=0.0)
+    other = parse_response(
+        response, _request(UserMessage(parts=(UserText("more"),))), latency_s=0.0
+    )
+    ids = [call.id for call in first.tool_calls]
+    assert len(set(ids)) == 2 and all(i.startswith("gm-") for i in ids)
+    assert ids == [call.id for call in again.tool_calls]
+    assert ids != [call.id for call in other.tool_calls]
+
+
+@pytest.mark.parametrize(
+    ("finish", "parts", "expected"),
+    [
+        ("SAFETY", (), "refusal"),
+        ("PROHIBITED_CONTENT", (), "refusal"),
+        ("MAX_TOKENS", (types.Part(text="partial"),), "max_tokens"),
+        ("MALFORMED_FUNCTION_CALL", (), "end_turn"),
+        ("STOP", (types.Part(text="done"),), "end_turn"),
+    ],
+)
+def test_finish_reasons_map_to_neutral_stop_reasons(
+    finish: str, parts: tuple[types.Part, ...], expected: str
+) -> None:
+    assert (
+        parse_response(_response(*parts, finish=finish), _request(), latency_s=0.0).stop_reason
+        == expected
+    )
+
+
+def test_blocked_prompt_is_a_refusal() -> None:
+    blocked = types.GenerateContentResponse(
+        prompt_feedback=types.GenerateContentResponsePromptFeedback(
+            block_reason=types.BlockedReason.SAFETY
+        )
+    )
+    parsed = parse_response(blocked, _request(), latency_s=0.0)
+    assert parsed.stop_reason == "refusal" and parsed.raw == () and parsed.tool_calls == ()
+
+
+def test_contents_echo_model_parts_and_group_function_responses() -> None:
+    model_turn = AssistantMessage(
+        raw=(
+            part_to_dict(_call("query_logs", "c1", SIGNATURE, service="a")),
+            part_to_dict(_call("list_services", "c2")),
+        ),
+        tool_calls=(
+            ToolCall("c1", "query_logs", {"service": "a"}),
+            ToolCall("c2", "list_services", {}),
+        ),
+    )
+    results = UserMessage(
+        parts=(
+            ToolResultPart("c1", json.dumps({"ok": True, "data": {"patterns": []}})),
+            ToolResultPart("c2", "not json", is_error=True),
+            UserText("Tool-call limit reached."),
+        )
+    )
+    contents = to_gemini_contents(_request(model_turn, results).messages)
+    assert [c.role for c in contents if isinstance(c, types.Content)] == ["user", "model", "user"]
+    model = contents[1]
+    assert isinstance(model, types.Content) and model.parts is not None
+    assert (
+        model.parts[0].thought_signature == SIGNATURE and model.parts[1].thought_signature is None
+    )
+    user = contents[2]
+    assert isinstance(user, types.Content) and user.parts is not None
+    first, second, note = user.parts
+    assert first.function_response is not None and second.function_response is not None
+    assert (first.function_response.id, first.function_response.name) == ("c1", "query_logs")
+    assert first.function_response.response == {"ok": True, "data": {"patterns": []}}
+    assert (second.function_response.id, second.function_response.name) == ("c2", "list_services")
+    assert second.function_response.response == {"error": "not json"}
+    assert note.text == "Tool-call limit reached."
+
+
+def test_function_responses_omit_ids_the_model_did_not_send_and_empty_turns_get_text() -> None:
+    model_turn = AssistantMessage(
+        raw=(part_to_dict(_call("list_services", None)),),
+        tool_calls=(ToolCall("gm-x-0", "list_services", {}),),
+    )
+    results = UserMessage(parts=(ToolResultPart("gm-x-0", json.dumps({"ok": True})),))
+    empty = AssistantMessage(raw=())
+    contents = to_gemini_contents(_request(model_turn, results, empty).messages)
+    reply, placeholder = contents[2], contents[3]
+    assert isinstance(reply, types.Content) and reply.parts is not None
+    response = reply.parts[0].function_response
+    assert response is not None and response.id is None and response.name == "list_services"
+    assert isinstance(placeholder, types.Content) and placeholder.parts is not None
+    assert placeholder.parts[0].text == EMPTY_TURN_TEXT
+
+
+async def test_second_request_echoes_the_signature_and_the_call_id() -> None:
+    first = _response(_call("query_logs", "call-7", SIGNATURE, service="a"), prompt_token_count=10)
+    second = _response(types.Part(text="done"), prompt_token_count=20)
+    client, models = _client(first, second)
+    request = _request()
+    response = await client.complete(request)
+    follow_up = dataclasses.replace(
+        request,
+        messages=(
+            *request.messages,
+            assistant_message(response),
+            UserMessage(parts=(ToolResultPart("call-7", json.dumps({"ok": True})),)),
+        ),
+    )
+    await client.complete(follow_up)
+    sent = models.calls[1]["contents"]
+    assert models.calls[1]["model"] == "gemini-4-argon"
+    assert sent[1].role == "model" and sent[1].parts[0].thought_signature == SIGNATURE
+    assert sent[2].parts[0].function_response.id == "call-7"
+
+
+@pytest.mark.parametrize(
+    ("error", "retryable"),
+    [
+        (
+            errors.ClientError(
+                400,
+                {"error": {"code": 400, "message": "bad request", "status": "INVALID_ARGUMENT"}},
+            ),
+            False,
+        ),
+        (
+            errors.ClientError(
+                429, {"error": {"code": 429, "message": "quota", "status": "RESOURCE_EXHAUSTED"}}
+            ),
+            True,
+        ),
+        (
+            errors.ServerError(
+                503, {"error": {"code": 503, "message": "overloaded", "status": "UNAVAILABLE"}}
+            ),
+            True,
+        ),
+        (ConnectionError("network down"), True),
+    ],
+)
+async def test_errors_become_llm_errors(error: Exception, retryable: bool) -> None:
+    client, _ = _client(error)
+    with pytest.raises(LLMError) as raised:
+        await client.complete(_request())
+    assert raised.value.retryable is retryable
+```
+
+#### File: `tests/unit/test_harness_routing.py`
+```python
+import pytest
+
+from investigator.harness.llm import LLMError, LLMRequest, LLMResponse, Usage, UserMessage, UserText
+from investigator.harness.routing import RoutingLLM, provider_for
+
+
+class EchoClient:
+    def __init__(self, name: str) -> None:
+        self.name = name
+
+    async def complete(self, request: LLMRequest) -> LLMResponse:
+        return LLMResponse(
+            raw=(),
+            text=self.name,
+            tool_calls=(),
+            stop_reason="end_turn",
+            usage=Usage(),
+            model=request.model,
+        )
+
+
+def _request(model: str) -> LLMRequest:
+    return LLMRequest(
+        agent_name="planner",
+        model=model,
+        system="s",
+        messages=(UserMessage(parts=(UserText("hi"),)),),
+        tools=(),
+        max_tokens=100,
+        effort="medium",
+    )
+
+
+def test_provider_for_uses_the_model_id_prefix() -> None:
+    assert provider_for("claude-opus-5-5") == "anthropic"
+    assert provider_for("gemini-4-argon") == "gemini"
+    with pytest.raises(ValueError, match="no provider for model 'gpt-5'"):
+        provider_for("gpt-5")
+
+
+async def test_router_creates_each_client_once_on_first_use() -> None:
+    created: list[str] = []
+
+    def factory(name: str) -> EchoClient:
+        created.append(name)
+        return EchoClient(name)
+
+    router = RoutingLLM(
+        {"anthropic": lambda: factory("anthropic"), "gemini": lambda: factory("gemini")}
+    )
+    assert created == []
+    assert (await router.complete(_request("gemini-4-argon"))).text == "gemini"
+    assert (await router.complete(_request("gemini-3.8-flash"))).text == "gemini"
+    assert (await router.complete(_request("claude-opus-5-5"))).text == "anthropic"
+    assert created == ["gemini", "anthropic"]
+
+
+async def test_router_reports_unknown_models_and_broken_factories_as_llm_errors() -> None:
+    def broken() -> EchoClient:
+        raise ValueError("Missing key inputs argument!")
+
+    router = RoutingLLM({"gemini": broken})
+    with pytest.raises(LLMError, match="no provider for model"):
+        await router.complete(_request("gpt-5"))
+    with pytest.raises(LLMError, match="could not create the gemini client: Missing key"):
+        await router.complete(_request("gemini-4-argon"))
+    with pytest.raises(LLMError, match="no client configured for provider 'anthropic'"):
+        await router.complete(_request("claude-opus-5-5"))
+```
+
+- [ ] **Step 3: Run the tests to verify they fail**
+
+Run: `uv run pytest tests/unit/test_harness_gemini_client.py tests/unit/test_harness_routing.py -q`
+Expected: FAIL with `ModuleNotFoundError: No module named 'investigator.harness.gemini_client'`
+
+- [ ] **Step 4: Write the implementation**
+
+#### File: `src/investigator/harness/gemini_client.py`
+```python
+"""Gemini adapter: neutral LLMRequest -> Gemini API (generateContent) -> LLMResponse.
+
+Rules for current Gemini models (Gemini 4 and 3.x; Gemini 2.5 where noted):
+- Effort maps to `thinking_level` (low / medium / high). `minimal` is never sent: Gemini 4 Argon and
+  Gemini 3.8 Flash reject it. Gemini 2.5 models take `thinking_budget` instead; sending both is an HTTP 400.
+- Thought signatures ride on response parts and must come back unchanged, in the same part and order.
+  Every response part is stored in `raw` and rebuilt verbatim; signature bytes travel as base64.
+- A function response carries the exact id of its function call. Responses to parallel calls go together
+  in one user turn, after the calls, never interleaved with them.
+- Sampling parameters stay at their defaults, and automatic function calling is off: the harness runs tools.
+- Tool schemas are reduced to the JSON Schema subset Gemini accepts; our validators still enforce the rest.
+- Retries for 408/429/5xx and transient network errors are delegated to the SDK (`HttpRetryOptions`).
+- This uses generateContent, which Google keeps fully supported. Moving to its newer Interactions API would
+  only change this file.
+"""
+
+import hashlib
+import json
+import time
+from dataclasses import dataclass
+from typing import Any, Literal
+
+from google import genai
+from google.genai import errors, types
+
+from investigator.harness.llm import (
+    AssistantMessage,
+    LLMError,
+    LLMRequest,
+    LLMResponse,
+    Message,
+    ToolCall,
+    ToolResultPart,
+    Usage,
+    UserText,
+    messages_to_jsonable,
+)
+from investigator.jsonutil import canonical_json
+
+ToolMode = Literal["AUTO", "VALIDATED"]
+
+EMPTY_TURN_TEXT = "(empty response)"
+_LEVELS = {"low": types.ThinkingLevel.LOW, "medium": types.ThinkingLevel.MEDIUM}
+_BUDGETS_2_5 = {"low": 1024, "medium": 8192}
+_SCHEMA_KEYS = frozenset(
+    {
+        "type",
+        "title",
+        "description",
+        "properties",
+        "required",
+        "additionalProperties",
+        "enum",
+        "format",
+        "minimum",
+        "maximum",
+        "items",
+        "prefixItems",
+        "minItems",
+        "maxItems",
+        "anyOf",
+    }
+)
+_REFUSALS = frozenset(
+    {
+        "SAFETY",
+        "RECITATION",
+        "BLOCKLIST",
+        "PROHIBITED_CONTENT",
+        "SPII",
+        "IMAGE_SAFETY",
+        "IMAGE_PROHIBITED_CONTENT",
+        "IMAGE_RECITATION",
+    }
+)
+
+
+@dataclass(frozen=True)
+class GeminiSettings:
+    max_retries: int = 3
+    timeout_s: float = 600.0
+    tool_mode: ToolMode = "AUTO"
+
+
+def thinking_config(model: str, effort: str) -> types.ThinkingConfig:
+    """low and medium map one to one; high, xhigh and max become the model's highest level."""
+    if model.startswith("gemini-2."):
+        return types.ThinkingConfig(thinking_budget=_BUDGETS_2_5.get(effort, -1))
+    return types.ThinkingConfig(thinking_level=_LEVELS.get(effort, types.ThinkingLevel.HIGH))
+
+
+def gemini_schema(schema: Any) -> Any:
+    """Keep only JSON Schema keywords Gemini accepts. `const` becomes a one-value `enum`."""
+    if isinstance(schema, list):
+        return [gemini_schema(item) for item in schema]
+    if not isinstance(schema, dict):
+        return schema
+    out: dict[str, Any] = {}
+    for key, value in schema.items():
+        if key == "const":
+            out["enum"] = [value]
+        elif key == "properties" and isinstance(value, dict):
+            out[key] = {name: gemini_schema(sub) for name, sub in value.items()}
+        elif key in _SCHEMA_KEYS:
+            out[key] = gemini_schema(value)
+    return out
+
+
+def part_to_dict(part: types.Part) -> dict[str, Any]:
+    """Lossless JSON form of a response part (bytes such as thought signatures become base64)."""
+    return part.model_dump(mode="json", exclude_none=True)
+
+
+def part_from_dict(data: dict[str, Any]) -> types.Part:
+    return types.Part.model_validate_json(json.dumps(data))
+
+
+def _response_payload(part: ToolResultPart) -> dict[str, Any]:
+    try:
+        value = json.loads(part.content)
+    except json.JSONDecodeError:
+        value = None
+    if isinstance(value, dict):
+        return value
+    return {"error": part.content} if part.is_error else {"output": part.content}
+
+
+def to_gemini_contents(messages: tuple[Message, ...]) -> list[types.ContentUnion]:
+    contents: list[types.ContentUnion] = []
+    calls: dict[
+        str, tuple[str, str | None]
+    ] = {}  # neutral call id -> (function name, Gemini's call id)
+    for message in messages:
+        if isinstance(message, AssistantMessage):
+            raw_calls = [
+                dict(part["function_call"]) for part in message.raw if "function_call" in part
+            ]
+            for call, raw in zip(message.tool_calls, raw_calls, strict=False):
+                calls[call.id] = (str(raw.get("name") or call.name), raw.get("id"))
+            parts = [part_from_dict(dict(part)) for part in message.raw] or [
+                types.Part(text=EMPTY_TURN_TEXT)
+            ]
+            contents.append(types.Content(role="model", parts=parts))
+            continue
+        user_parts: list[types.Part] = []
+        for part in message.parts:
+            if isinstance(part, ToolResultPart):
+                name, call_id = calls.get(part.tool_call_id, ("unknown_tool", None))
+                response = types.FunctionResponse(
+                    id=call_id, name=name, response=_response_payload(part)
+                )
+                user_parts.append(types.Part(function_response=response))
+        for part in message.parts:
+            if isinstance(part, UserText):
+                user_parts.append(types.Part(text=part.text))
+        contents.append(types.Content(role="user", parts=user_parts))
+    return contents
+
+
+def build_config(request: LLMRequest, settings: GeminiSettings) -> types.GenerateContentConfig:
+    declarations = [
+        types.FunctionDeclaration(
+            name=spec.name,
+            description=spec.description,
+            parameters_json_schema=gemini_schema(spec.input_schema),
+        )
+        for spec in request.tools
+    ]
+    return types.GenerateContentConfig(
+        system_instruction=request.system,
+        max_output_tokens=request.max_tokens,
+        thinking_config=thinking_config(request.model, request.effort),
+        tools=[types.Tool(function_declarations=declarations)] if declarations else None,
+        tool_config=types.ToolConfig(
+            function_calling_config=types.FunctionCallingConfig(
+                mode=types.FunctionCallingConfigMode(settings.tool_mode)
+            )
+        )
+        if declarations
+        else None,
+        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+    )
+
+
+def parse_response(
+    response: types.GenerateContentResponse, request: LLMRequest, *, latency_s: float
+) -> LLMResponse:
+    candidate = response.candidates[0] if response.candidates else None
+    content = candidate.content if candidate is not None else None
+    parts = list(content.parts or []) if content is not None else []
+    # Older models may omit call ids; derive stable ones from the transcript so replays stay deterministic.
+    digest = hashlib.sha1(
+        f"{request.agent_name}|{canonical_json(messages_to_jsonable(request.messages))}".encode()
+    ).hexdigest()[:12]
+    tool_calls: list[ToolCall] = []
+    for part in parts:
+        call = part.function_call
+        if call is None:
+            continue
+        call_id = call.id or f"gm-{digest}-{len(tool_calls)}"
+        tool_calls.append(
+            ToolCall(id=call_id, name=call.name or "", arguments=dict(call.args or {}))
+        )
+    text = "".join(part.text for part in parts if part.text and not part.thought)
+    finish = (
+        candidate.finish_reason.value
+        if candidate is not None and candidate.finish_reason is not None
+        else ""
+    )
+    if candidate is None:
+        blocked = (
+            response.prompt_feedback is not None
+            and response.prompt_feedback.block_reason is not None
+        )
+        stop_reason = "refusal" if blocked else "end_turn"
+    elif finish in _REFUSALS:
+        stop_reason = "refusal"
+    elif finish == "MAX_TOKENS":
+        stop_reason = "max_tokens"
+    else:
+        stop_reason = "tool_use" if tool_calls else "end_turn"
+    meta = response.usage_metadata or types.GenerateContentResponseUsageMetadata()
+    cached = meta.cached_content_token_count or 0
+    usage = Usage(
+        input_tokens=max(0, (meta.prompt_token_count or 0) - cached)
+        + (meta.tool_use_prompt_token_count or 0),
+        output_tokens=(meta.candidates_token_count or 0) + (meta.thoughts_token_count or 0),
+        cache_read_tokens=cached,
+        cache_write_tokens=0,
+    )
+    return LLMResponse(
+        raw=tuple(part_to_dict(part) for part in parts),
+        text=text,
+        tool_calls=tuple(tool_calls),
+        stop_reason=stop_reason,
+        usage=usage,
+        model=(response.model_version or request.model).removeprefix("models/"),
+        latency_s=latency_s,
+    )
+
+
+class GeminiClient:
+    def __init__(self, settings: GeminiSettings | None = None, client: Any | None = None) -> None:
+        self._settings = settings or GeminiSettings()
+        self._client = client or genai.Client(
+            http_options=types.HttpOptions(
+                timeout=int(self._settings.timeout_s * 1000),
+                retry_options=types.HttpRetryOptions(attempts=self._settings.max_retries + 1),
+            )
+        )
+
+    async def complete(self, request: LLMRequest) -> LLMResponse:
+        contents = to_gemini_contents(request.messages)
+        config = build_config(request, self._settings)
+        started = time.perf_counter()
+        try:
+            response = await self._client.aio.models.generate_content(
+                model=request.model, contents=contents, config=config
+            )
+        except errors.APIError as exc:
+            retryable = exc.code in (408, 429) or exc.code >= 500
+            raise LLMError(
+                f"Gemini API error {exc.code} {exc.status}: {exc.message}", retryable=retryable
+            ) from exc
+        except Exception as exc:  # transport errors left over after the SDK's own retries
+            raise LLMError(
+                f"Gemini request failed: {type(exc).__name__}: {exc}", retryable=True
+            ) from exc
+        return parse_response(response, request, latency_s=time.perf_counter() - started)
+```
+
+#### File: `src/investigator/harness/routing.py`
+```python
+"""Send each request to the client for its model's provider, chosen from the model id prefix.
+
+Clients are created on first use, so a run only needs API keys for the providers it actually calls,
+and agents in `config/agents.yaml` can use models from different providers in the same run.
+"""
+
+from collections.abc import Callable, Mapping
+
+from investigator.harness.llm import LLMClient, LLMError, LLMRequest, LLMResponse
+
+PROVIDER_PREFIXES: dict[str, str] = {"claude-": "anthropic", "gemini-": "gemini"}
+
+
+def provider_for(model: str) -> str:
+    for prefix, provider in PROVIDER_PREFIXES.items():
+        if model.startswith(prefix):
+            return provider
+    known = ", ".join(f"{prefix}*" for prefix in PROVIDER_PREFIXES)
+    raise ValueError(f"no provider for model {model!r}; model ids must look like {known}")
+
+
+class RoutingLLM:
+    def __init__(self, factories: Mapping[str, Callable[[], LLMClient]]) -> None:
+        self._factories = dict(factories)
+        self._clients: dict[str, LLMClient] = {}
+
+    def client_for(self, model: str) -> LLMClient:
+        try:
+            provider = provider_for(model)
+        except ValueError as exc:
+            raise LLMError(str(exc), retryable=False) from exc
+        client = self._clients.get(provider)
+        if client is None:
+            factory = self._factories.get(provider)
+            if factory is None:
+                raise LLMError(f"no client configured for provider {provider!r}", retryable=False)
+            try:
+                client = factory()
+            except Exception as exc:  # most often a missing API key
+                raise LLMError(
+                    f"could not create the {provider} client: {exc}", retryable=False
+                ) from exc
+            self._clients[provider] = client
+        return client
+
+    async def complete(self, request: LLMRequest) -> LLMResponse:
+        return await self.client_for(request.model).complete(request)
+```
+
+- [ ] **Step 5: Run the tests to verify they pass**
+
+Run: `uv run pytest tests/unit/test_harness_gemini_client.py tests/unit/test_harness_routing.py -q`
+Expected: `22 passed`
+
+- [ ] **Step 6: Milestone check and commit**
+
+Run: `uv run pytest -q && uv run mypy`
+Expected: all tests pass and mypy reports `Success`. If mypy reports errors, apply the type-ignore rule.
+
+```bash
+git add -A
+git commit -m "feat(harness): Gemini client and model-id provider routing"
 ```
 
 ---
@@ -9936,9 +10758,9 @@ git commit -m "feat(agents): system prompts for all agents and shared rules"
 - Test: `tests/unit/test_settings.py`
 
 **Interfaces:**
-- Consumes: `AnthropicSettings` (3.8), `BudgetLimits` (3.3), `ExecutorConfig` and `RetryPolicy` (3.3/3.5).
+- Consumes: `AnthropicSettings` (3.8), `GeminiSettings` (3.10), `BudgetLimits` (3.3), `ExecutorConfig` and `RetryPolicy` (3.3/3.5).
 - Produces:
-  - `LLMConfig`, with `.anthropic_settings()`
+  - `LLMConfig`, with `.anthropic_settings()` and `.gemini_settings()`
   - `InvestigationConfig`
   - `BudgetConfig`, with `.limits()`
   - `ToolsConfig`, with `.executor_config()`
@@ -9964,6 +10786,7 @@ def test_default_yaml_loads(repo_root: Path) -> None:
     config = settings.tools.executor_config()
     assert config.retry.max_attempts == 3 and config.default_timeout_s == 8.0
     assert settings.llm.anthropic_settings().refusal_fallback is True
+    assert settings.llm.gemini_settings().tool_mode == "AUTO"
 
 
 def test_overrides_deep_merge(repo_root: Path) -> None:
@@ -9995,7 +10818,7 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'investigator.settings
 """Run configuration: config/default.yaml validated by Pydantic, with optional deep-merged overrides."""
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, Field
@@ -10003,6 +10826,7 @@ from pydantic import BaseModel, Field
 from investigator.harness.anthropic_client import AnthropicSettings
 from investigator.harness.budget import BudgetLimits
 from investigator.harness.executor import ExecutorConfig
+from investigator.harness.gemini_client import GeminiSettings
 from investigator.harness.retry import RetryPolicy
 
 
@@ -10013,6 +10837,7 @@ class LLMConfig(BaseModel):
     timeout_s: float = 600.0
     refusal_fallback: bool = True
     prompt_caching: bool = True
+    gemini_tool_mode: Literal["AUTO", "VALIDATED"] = "AUTO"
 
     def anthropic_settings(self) -> AnthropicSettings:
         return AnthropicSettings(
@@ -10020,6 +10845,11 @@ class LLMConfig(BaseModel):
             timeout_s=self.timeout_s,
             refusal_fallback=self.refusal_fallback,
             prompt_caching=self.prompt_caching,
+        )
+
+    def gemini_settings(self) -> GeminiSettings:
+        return GeminiSettings(
+            max_retries=self.max_retries, timeout_s=self.timeout_s, tool_mode=self.gemini_tool_mode
         )
 
 
@@ -10131,12 +10961,13 @@ def load_settings(path: Path | None = None, overrides: dict[str, Any] | None = N
 ```yaml
 # Default run configuration. Every value here can be overridden from the CLI (see `investigator --help`).
 llm:
-  model: claude-opus-5-5        # same model for every agent and the single-agent baseline
+  model: claude-opus-5-5        # same model for every agent and the baseline; claude-* runs on Claude, gemini-* on Gemini
   max_tokens: 32000
   max_retries: 3                # SDK transport retries (429/5xx/connection)
   timeout_s: 600
-  refusal_fallback: true        # server-side fallbacks: "default" (beta server-side-fallback-2026-07-01)
-  prompt_caching: true
+  refusal_fallback: true        # Claude only: server-side fallbacks "default" (beta server-side-fallback-2026-07-01)
+  prompt_caching: true          # Claude only; Gemini caches repeated prompt prefixes automatically
+  gemini_tool_mode: AUTO        # Gemini only: AUTO, or VALIDATED to constrain function calls to the schemas
 
 investigation:
   max_rounds: 3
@@ -13008,7 +13839,7 @@ git commit -m "feat(orchestrator): coordinator control loop with feedback rounds
   - `render_report(report, incident, evidence, metrics=None) -> str`, `confidence_label(value)`
   - `runtime`:
     - discovery and loading: `scenario_dir(settings, scenario_id)`, `list_scenarios(settings)`, `load_incident(root)`
-    - building: `build_environment(root, settings, *, seed=0) -> (registry, services)`, `build_catalog(settings)`, `build_llm(settings, *, record=None, replay=None)`
+    - building: `build_environment(root, settings, *, seed=0) -> (registry, services)`, `build_catalog(settings)`, `build_llm(settings, *, record=None, replay=None)`. `build_llm` returns a `RoutingLLM` (Task 3.10) that sends `claude-*` models to the Anthropic client and `gemini-*` models to the Gemini client, and raises `ValueError` for any other model id
     - running: `new_run_id(scenario_id, system)`, `write_artifacts(outcome)`, `async run_investigation(*, scenario_id, system: "multi"|"single", settings, llm, run_dir=None, seed=0, run_id=None)`
 - Artifacts written to `run_dir`: `trace.jsonl`, `state.json` (multi only), `report.json`, `report.md`, `evidence.json`, `metrics.json`.
 
@@ -13025,8 +13856,9 @@ import pytest
 from investigator.domain.evidence import EvidenceStore
 from investigator.domain.incident import IncidentReport
 from investigator.domain.report import InvestigationReport
+from investigator.harness.routing import RoutingLLM
 from investigator.reporting.markdown import render_report
-from investigator.runtime import list_scenarios, run_investigation, scenario_dir
+from investigator.runtime import build_llm, list_scenarios, run_investigation, scenario_dir
 from investigator.settings import Settings
 from tests.fakes import standard_llm
 
@@ -13102,6 +13934,16 @@ def test_scenario_discovery(test_settings: Settings) -> None:
     assert list_scenarios(test_settings) == [f"INC-{i:02d}" for i in range(1, 13)]
     with pytest.raises(FileNotFoundError):
         scenario_dir(test_settings, "INC-99")
+
+
+def test_build_llm_routes_by_model_id(test_settings: Settings) -> None:
+    for model in ("claude-opus-5-5", "gemini-4-argon"):
+        settings = test_settings.model_copy(
+            update={"llm": test_settings.llm.model_copy(update={"model": model})}
+        )
+        assert isinstance(build_llm(settings), RoutingLLM)
+    with pytest.raises(ValueError, match="no provider for model 'scripted'"):
+        build_llm(test_settings)
 ```
 
 - [ ] **Step 2: Run the test to verify it fails**
@@ -13401,8 +14243,10 @@ from investigator.backends.simulated import build_simulated_backends, load_servi
 from investigator.baseline.single_agent import SingleAgentInvestigator
 from investigator.domain.incident import IncidentReport, ServiceInfo
 from investigator.harness.anthropic_client import AnthropicClient
+from investigator.harness.gemini_client import GeminiClient
 from investigator.harness.llm import LLMClient
 from investigator.harness.recording import RecordingLLM
+from investigator.harness.routing import RoutingLLM, provider_for
 from investigator.harness.tools import ToolRegistry
 from investigator.orchestrator.coordinator import Coordinator
 from investigator.orchestrator.outcome import InvestigationOutcome
@@ -13455,9 +14299,16 @@ def build_catalog(settings: Settings) -> AgentCatalog:
 def build_llm(
     settings: Settings, *, record: Path | None = None, replay: Path | None = None
 ) -> LLMClient:
+    """Replay a cassette, or route each request to Claude or Gemini by its model id (optionally recording)."""
     if replay is not None:
         return RecordingLLM(replay, mode="replay")
-    client = AnthropicClient(settings.llm.anthropic_settings())
+    provider_for(settings.llm.model)  # fail fast on a model id no provider serves
+    client = RoutingLLM(
+        {
+            "anthropic": lambda: AnthropicClient(settings.llm.anthropic_settings()),
+            "gemini": lambda: GeminiClient(settings.llm.gemini_settings()),
+        }
+    )
     if record is not None:
         return RecordingLLM(record, mode="record", inner=client)
     return client
@@ -13527,7 +14378,7 @@ async def run_investigation(
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `uv run pytest tests/integration/test_runtime_and_baseline.py -q`
-Expected: `4 passed`
+Expected: `5 passed`
 
 - [ ] **Step 5: Commit**
 
@@ -13560,6 +14411,7 @@ The CLI is complete from the start. The `eval`, `summarize` and `record-cassette
 
 #### File: `tests/integration/test_cli.py`
 ```python
+import asyncio
 import json
 from pathlib import Path
 
@@ -13610,11 +14462,14 @@ async def test_show_trace_prints_tree(test_settings: Settings, tmp_path: Path) -
     assert "gathering" in result.output and "tool query_metrics" in result.output
 
 
-async def test_investigate_replays_a_cassette(test_settings: Settings, tmp_path: Path) -> None:
+def test_investigate_replays_a_cassette(test_settings: Settings, tmp_path: Path) -> None:
+    # Synchronous on purpose: the CLI calls asyncio.run(), which cannot run inside a running event loop.
     cassette = tmp_path / "INC-01-multi.json"
     recorder = RecordingLLM(cassette, mode="record", inner=standard_llm())
-    await run_investigation(
-        scenario_id="INC-01", system="multi", settings=test_settings, llm=recorder, run_dir=None
+    asyncio.run(
+        run_investigation(
+            scenario_id="INC-01", system="multi", settings=test_settings, llm=recorder, run_dir=None
+        )
     )
     config = tmp_path / "config.yaml"
     config.write_text(
@@ -13683,7 +14538,8 @@ ConfigOption = Annotated[
     typer.Option("--config", help="Path to a YAML config (default: config/default.yaml)"),
 ]
 ModelOption = Annotated[
-    str | None, typer.Option("--model", help="Model id override, e.g. claude-haiku-5-5")
+    str | None,
+    typer.Option("--model", help="Model id override, e.g. claude-haiku-5-5 or gemini-4-argon"),
 ]
 
 
@@ -14866,19 +15722,23 @@ git commit -m "feat(eval): ground truth, deterministic scorer, oracle and null c
 **Interfaces:**
 - Produces:
   - `Price(input, output, cache_write, cache_read)`, in USD per 1M tokens
-  - `PRICES`, `TYPICAL_RUN`
+  - `PRICES`, `LONG_PROMPT`, `TYPICAL_RUN`
   - `price_for(model, prompt_tokens)`, `call_cost(model, usage: dict) -> float | None`, `run_cost(events) -> float | None`, `estimate_cost_text(model, runs) -> str`
-- Prices (first-party Anthropic API, October 2026):
+- Prices (standard tier, as listed on 2026-10-20):
 
-  | Model | Input | Output | Cache write (5 min) | Cache read |
+  | Model | Input | Output | Cache write | Cache read |
   |---|---|---|---|---|
-  | Opus 5.5 | $4 | $20 | $5 | $0.20 |
-  | Sonnet 5.5 | $2 | $10 | $2.50 | $0.20 |
-  | Haiku 5.5 | $0.10 | $0.50 | $0.125 | $0.01 |
+  | `claude-opus-5-5` | $4 | $20 | $5 (5 min) | $0.20 |
+  | `claude-sonnet-5-5` | $2 | $10 | $2.50 (5 min) | $0.20 |
+  | `claude-haiku-5-5` | $0.10 | $0.50 | $0.125 (5 min) | $0.01 |
+  | `gemini-4-argon` | $2 | $10 | none (implicit caching) | $0.10 |
+  | `gemini-3.8-flash`, `gemini-3.6-flash` | $0.75 | $3.75 | none | $0.075 |
+  | `gemini-3.5-flash-lite` | $0.30 | $2.50 | none | $0.03 |
+  | `gemini-3.1-pro-preview` | $2 | $12 | none | $0.20 |
 
-  For Haiku 5.5 prompts above 100K tokens: $0.50 / $2.50.
-
-  The Haiku cache rates are derived as 1.25× and 0.1× of its input price.
+  - Haiku 5.5 prompts above 100K tokens cost $0.50 / $2.50. Its cache rates are derived as 1.25× and 0.1× of its input price.
+  - Gemini 3.1 Pro prompts above 200K tokens cost $4 / $18, with $0.40 cache reads.
+  - Google has announced price increases: Gemini 4 Argon from 2026-12-01, Gemini 3.8 and 3.6 Flash from 2027-01-01. The module docstring records the new prices.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -14916,6 +15776,32 @@ def test_haiku_long_prompt_rate_and_unknown_model() -> None:
     assert call_cost("claude-haiku-5-5", short) == pytest.approx(0.005)
     assert call_cost("claude-haiku-5-5", long) == pytest.approx(0.1)
     assert call_cost("scripted", short) is None
+
+
+def test_gemini_prices_and_long_prompt_tier() -> None:
+    usage = {
+        "input_tokens": 1_000_000,
+        "output_tokens": 1_000_000,
+        "cache_read_tokens": 1_000_000,
+        "cache_write_tokens": 0,
+    }
+    assert call_cost("gemini-4-argon", usage) == pytest.approx(2.0 + 10.0 + 0.1)
+    short = {
+        "input_tokens": 100_000,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+    }
+    long = {
+        "input_tokens": 300_000,
+        "output_tokens": 0,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+    }
+    assert call_cost("gemini-3.1-pro-preview", short) == pytest.approx(0.2)
+    assert call_cost("gemini-3.1-pro-preview", long) == pytest.approx(1.2)
+    assert call_cost("gemini-3.1-pro-preview-customtools", short) == pytest.approx(0.2)
+    assert call_cost("gemini-2.5-pro", short) is None
 
 
 def test_run_cost_sums_llm_calls_by_served_model() -> None:
@@ -14958,9 +15844,12 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'investigator.evaluati
 
 #### File: `src/investigator/evaluation/pricing.py`
 ```python
-"""Token pricing (USD per 1M tokens, first-party Anthropic API) and cost estimates.
+"""Token pricing (USD per 1M tokens) for Claude and Gemini, and cost estimates.
 
 Cost is always derived from recorded usage and the model that actually served each call.
+Prices were taken from the providers' pricing pages on 2026-10-20 (standard tier). Google has announced
+increases: Gemini 4 Argon to $4 / $20 / $0.20 from 2026-12-01, and Gemini 3.8 and 3.6 Flash to
+$1.50 / $7.50 / $0.15 from 2027-01-01. Update this table when prices change.
 """
 
 from dataclasses import dataclass
@@ -14981,9 +15870,24 @@ PRICES: dict[str, Price] = {
     "claude-opus-5-5": Price(input=4.00, output=20.00, cache_write=5.00, cache_read=0.20),
     "claude-sonnet-5-5": Price(input=2.00, output=10.00, cache_write=2.50, cache_read=0.20),
     "claude-haiku-5-5": Price(input=0.10, output=0.50, cache_write=0.125, cache_read=0.01),
+    # Gemini caches repeated prompt prefixes implicitly, so there is no cache-write charge.
+    "gemini-4-argon": Price(input=2.00, output=10.00, cache_write=0.0, cache_read=0.10),
+    "gemini-3.8-flash": Price(input=0.75, output=3.75, cache_write=0.0, cache_read=0.075),
+    "gemini-3.6-flash": Price(input=0.75, output=3.75, cache_write=0.0, cache_read=0.075),
+    "gemini-3.5-flash-lite": Price(input=0.30, output=2.50, cache_write=0.0, cache_read=0.03),
+    "gemini-3.1-pro-preview": Price(input=2.00, output=12.00, cache_write=0.0, cache_read=0.20),
 }
-HAIKU_LONG_PROMPT = Price(input=0.50, output=2.50, cache_write=0.625, cache_read=0.05)
-LONG_PROMPT_TOKENS = 100_000
+# Models whose rate card changes above a prompt length: model -> (prompt tokens, price above that length).
+LONG_PROMPT: dict[str, tuple[int, Price]] = {
+    "claude-haiku-5-5": (
+        100_000,
+        Price(input=0.50, output=2.50, cache_write=0.625, cache_read=0.05),
+    ),
+    "gemini-3.1-pro-preview": (
+        200_000,
+        Price(input=4.00, output=18.00, cache_write=0.0, cache_read=0.40),
+    ),
+}
 
 # Rough per-run volume used only for the pre-run estimate; replace it with measured smoke-run numbers.
 TYPICAL_RUN = Usage(
@@ -14992,12 +15896,14 @@ TYPICAL_RUN = Usage(
 
 
 def price_for(model: str, prompt_tokens: int) -> Price | None:
-    """Match the model id exactly or as a dated snapshot of a priced id (e.g. `<id>-20261001`)."""
-    base = next((name for name in PRICES if model == name or model.startswith(f"{name}-")), None)
-    if base is None:
+    """Match the model id exactly, or as a dated or variant id of a priced model (e.g. `<id>-20261001`)."""
+    matches = [name for name in PRICES if model == name or model.startswith(f"{name}-")]
+    if not matches:
         return None
-    if base == "claude-haiku-5-5" and prompt_tokens > LONG_PROMPT_TOKENS:
-        return HAIKU_LONG_PROMPT
+    base = max(matches, key=len)
+    long_prompt = LONG_PROMPT.get(base)
+    if long_prompt is not None and prompt_tokens > long_prompt[0]:
+        return long_prompt[1]
     return PRICES[base]
 
 
@@ -15040,7 +15946,7 @@ def estimate_cost_text(model: str, runs: int) -> str:
 - [ ] **Step 4: Run the test to verify it passes**
 
 Run: `uv run pytest tests/unit/test_evaluation_pricing.py -q`
-Expected: `4 passed`
+Expected: `5 passed`
 
 - [ ] **Step 5: Commit**
 
@@ -15691,7 +16597,7 @@ git commit -m "feat(eval): summary tables, results.md and the eval quality gate"
 
 **Files:**
 - Create: `tests/cassettes/INC-01-multi.json`, `tests/cassettes/INC-01-single.json` (recorded, needs an API key)
-- Test: `tests/integration/test_replay.py`, `tests/live/test_live_smoke.py`
+- Test: `tests/integration/test_replay.py`, `tests/live/test_live_smoke.py`, `tests/live/test_live_gemini.py`
 
 - [ ] **Step 1: Write the replay test (it is skipped until cassettes exist)**
 
@@ -15797,13 +16703,52 @@ Then make the pre-run cost estimate realistic. In `src/investigator/evaluation/p
 - `cache_read_tokens` = "Cache-read tokens"
 - `cache_write_tokens` = "Cache-write tokens"
 
-Run `uv run pytest tests/unit/test_evaluation_pricing.py -q` again; expected `4 passed`.
+Run `uv run pytest tests/unit/test_evaluation_pricing.py -q` again; expected `5 passed`.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 7: Gemini live smoke test (optional; needs `GEMINI_API_KEY`; well under $1)**
+
+#### File: `tests/live/test_live_gemini.py`
+```python
+"""Live check of the Gemini path (well under $1). Run with: uv run pytest tests/live/test_live_gemini.py -m live -q"""
+
+import os
+
+import pytest
+
+from investigator.runtime import build_llm, run_investigation
+from investigator.settings import load_settings
+
+GEMINI_SMOKE_MODEL = "gemini-3.8-flash"
+HAS_KEY = bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
+
+
+@pytest.mark.live
+@pytest.mark.skipif(not HAS_KEY, reason="needs GEMINI_API_KEY (or GOOGLE_API_KEY)")
+@pytest.mark.parametrize("system", ["multi", "single"])
+async def test_live_gemini_run_completes(system: str) -> None:
+    settings = load_settings(None, {"llm": {"model": GEMINI_SMOKE_MODEL}})
+    outcome = await run_investigation(
+        scenario_id="INC-01", system=system, settings=settings, llm=build_llm(settings)
+    )  # type: ignore[arg-type]
+    assert outcome.metrics.llm_errors == 0, [e for e in outcome.events if e["type"] == "llm_error"]
+    assert outcome.report.fallback is False
+    assert all(m.startswith(GEMINI_SMOKE_MODEL) for m in outcome.metrics.served_models)
+```
+
+Run: `uv run pytest tests/live/test_live_gemini.py -m live -q`
+Expected: `2 passed`, or `2 skipped` when no Gemini key is set.
+
+| Error text contains | Fix |
+|---|---|
+| `API key not valid`, `PERMISSION_DENIED` or `Missing key` | Export `GEMINI_API_KEY` (create one in Google AI Studio) |
+| `VALIDATED` | Set `gemini_tool_mode: AUTO` in `config/default.yaml` |
+| anything else | Record it in `ERRORS.md` (see `00-execution-guide.md`) and stop |
+
+- [ ] **Step 8: Commit**
 
 ```bash
 git add -A
-git commit -m "test: recorded replay cassettes and live smoke test"
+git commit -m "test: recorded replay cassettes and live smoke tests"
 ```
 
 ---
@@ -15906,7 +16851,7 @@ flowchart TB
     LOOP["Agent loop"]
     EXE["Tool executor<br/>validation · timeout · retry · breaker"]
     REG["Tool registry + toolsets"]
-    LLMC["LLMClient<br/>Anthropic · Scripted · Recording"]
+    LLMC["LLMClient<br/>Anthropic · Gemini · Scripted · Recording<br/>(provider chosen by model id)"]
     BUD["Budget"]
     HK["Hooks + Tracer"]
   end
@@ -16040,6 +16985,8 @@ Every run records one termination reason: `critic_accepted`, `max_rounds_reached
 
 Every agent, including the baseline, is configuration on one harness class: a prompt (`prompts/<name>.md`), a least-privilege tool list, an output type that defines its submit tool, an effort level and turn limits (`config/agents.yaml`). An agent ends only by calling its submit tool with output that passes schema and citation validation. It never writes shared state; the coordinator merges its output.
 
+The model id decides the provider: `claude-*` ids run on the Anthropic client and `gemini-*` ids on the Gemini client (`harness/routing.py` creates each client on first use). The CLI's `--model` sets the model for every agent at once; a `model:` entry in `config/agents.yaml` sets it for one agent, so one run can mix providers.
+
 | Agent | Role | Tools | Output | Effort |
 |---|---|---|---|---|
 | Planner | Turns the incident into 2–6 tasks with dependencies; later turns critic requests into follow-up tasks or concludes | none | `submit_plan` | medium |
@@ -16127,7 +17074,7 @@ Together these make a recorded real-model run replay exactly offline (`tests/int
 | Tools from another source, such as an MCP server | A `Toolset` that wraps each external tool as a `Tool`, registered with `registry.register_toolset(...)`. Names must match `^[a-zA-Z0-9_-]{1,64}$`, e.g. `mcp__<server>__<tool>` | Agent loop, coordinator |
 | A real telemetry backend | One adapter class implementing a port in `src/investigator/backends/base.py` (e.g. a Loki `LogStore`) | Tools, agents |
 | A specialist agent | An entry under `specialists:` in `config/agents.yaml` and a prompt in `prompts/`; the planner sees it in its catalog | Coordinator, scheduler |
-| A different LLM provider | An `LLMClient` implementation (`src/investigator/harness/llm.py`) | Agents, tools, orchestration |
+| A different LLM provider | An `LLMClient` implementation (like `harness/gemini_client.py`) and its model-id prefix in `PROVIDER_PREFIXES` (`harness/routing.py`). Claude and Gemini are built in | Agents, tools, orchestration |
 | A test incident | A YAML file in `datasets/scenarios/`, then `make data` | Code |
 
 ## 10. Evaluation
@@ -16339,13 +17286,13 @@ This file contains triple-backtick blocks, so it is shown inside four-backtick f
 ````markdown
 # Incident investigator
 
-A multi-agent system that investigates production incidents. Six cooperating Claude agents query logs, metrics, deployments, config changes, service topology and incident history. They argue over competing hypotheses and produce a report with ranked root causes, supporting and contradicting evidence, confidence and recommended actions. When the evidence is not enough, the answer is an honest "inconclusive".
+A multi-agent system that investigates production incidents. Six cooperating LLM agents (Claude by default, or Gemini) query logs, metrics, deployments, config changes, service topology and incident history. They argue over competing hypotheses and produce a report with ranked root causes, supporting and contradicting evidence, confidence and recommended actions. When the evidence is not enough, the answer is an honest "inconclusive".
 
 It runs against a simulated retail-investing platform with 12 generated incidents that include misleading evidence, conflicting signals, tool failures and a prompt injection. An automated evaluation compares it with a single-agent baseline on the same model, tools and budget.
 
 ## Quickstart
 
-You need [uv](https://docs.astral.sh/uv/) (it installs Python 3.14 for you). Real runs also need an Anthropic API key.
+You need [uv](https://docs.astral.sh/uv/) (it installs Python 3.14 for you). Real runs also need an API key for the model's provider: Anthropic for `claude-*` models, the Gemini API for `gemini-*` models.
 
 ```bash
 uv sync                               # install dependencies into .venv
@@ -16359,6 +17306,8 @@ Run one investigation. This calls the real API and costs about $1–2 on Claude 
 export ANTHROPIC_API_KEY=sk-ant-...   # or: set -a; source .env; set +a
 uv run investigator investigate --scenario INC-02 --system multi
 ```
+
+To run on Gemini instead, export `GEMINI_API_KEY` and add `--model gemini-4-argon` (or another `gemini-*` id, such as the cheaper `gemini-3.8-flash`).
 
 The command prints the status, the top hypothesis, token use and the path of `runs/<run-id>/report.md`. To see what every agent and tool did, run `uv run investigator show-trace runs/<run-id>`.
 
@@ -16388,9 +17337,10 @@ Every setting is in `config/default.yaml`. Use `--config my.yaml` to load anothe
 
 | Setting | Default | Meaning |
 |---|---|---|
-| `llm.model` | `claude-opus-5-5` | Model for every agent and for the baseline |
-| `llm.refusal_fallback` | `true` | If the model refuses, retry on the server-side fallback model (beta API) |
-| `llm.prompt_caching` | `true` | Cache system prompts and transcripts |
+| `llm.model` | `claude-opus-5-5` | Model for every agent and for the baseline. `claude-*` ids run on Claude, `gemini-*` ids on Gemini |
+| `llm.refusal_fallback` | `true` | Claude only: if the model refuses, retry on the server-side fallback model (beta API) |
+| `llm.prompt_caching` | `true` | Claude only: cache system prompts and transcripts (Gemini caches automatically) |
+| `llm.gemini_tool_mode` | `AUTO` | Gemini only: `VALIDATED` constrains function calls to their schemas |
 | `investigation.max_rounds` | `3` | Critic feedback rounds |
 | `investigation.max_parallel_tasks` | `4` | Specialists running at the same time |
 | `investigation.critic_enabled` | `true` | `--no-critic` turns the critic loop off (ablation) |
@@ -16398,7 +17348,9 @@ Every setting is in `config/default.yaml`. Use `--config my.yaml` to load anothe
 | `tools.default_timeout_s`, `tools.max_attempts` | `8`, `3` | Per tool call |
 | `evaluation.trials`, `evaluation.concurrency` | `3`, `2` | Repetitions per scenario and system, and runs in parallel |
 
-Agents (prompt, tools, effort, turn limits) are defined in `config/agents.yaml`, and their prompts in `prompts/`. The only environment variable is `ANTHROPIC_API_KEY`.
+Agents (prompt, tools, effort, turn limits, and an optional per-agent `model`) are defined in `config/agents.yaml`, and their prompts in `prompts/`. Giving agents models from different providers mixes Claude and Gemini in one run.
+
+Environment variables: `ANTHROPIC_API_KEY` for Claude models, and `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) for Gemini models. Only the keys for the providers you use are needed.
 
 ## How it works
 
@@ -16422,7 +17374,7 @@ Results go to `evals/results/<timestamp>-<model>/`:
 - `errors.jsonl`: infrastructure failures, which are never scored.
 - `summary.json` and `results.md`.
 
-An interrupted evaluation resumes when you pass the same `--out`. For cheaper development runs add `--model claude-haiku-5-5` (under $5 for the full suite).
+An interrupted evaluation resumes when you pass the same `--out`. For cheaper development runs add `--model claude-haiku-5-5` (under $5 for the full suite) or `--model gemini-3.8-flash`. To compare providers, run the same evaluation again with `--model gemini-4-argon` and its own `--out`.
 
 Quality metrics:
 - Root-cause accuracy (top-1 and top-3) and trigger accuracy
@@ -16445,14 +17397,14 @@ The final results and their interpretation: [docs/technical-note.md](docs/techni
 | Architecture | `uv run pytest tests/architecture` | Layering, no ground-truth leakage, docs, CI files, deliverables |
 | Live | `uv run pytest -m live` | Real API smoke test (about $2) |
 
-CI (`.github/workflows/ci.yml`) runs on every push and pull request. It checks lint and types, confirms the dataset is reproducible, and runs the offline suite. `.github/workflows/eval.yml` runs a paid evaluation on demand and needs an `ANTHROPIC_API_KEY` repository secret.
+CI (`.github/workflows/ci.yml`) runs on every push and pull request. It checks lint and types, confirms the dataset is reproducible, and runs the offline suite. `.github/workflows/eval.yml` runs a paid evaluation on demand. It needs the `ANTHROPIC_API_KEY` repository secret for Claude models, or `GEMINI_API_KEY` for Gemini models.
 
 ## Docker
 
 ```bash
 docker build --build-arg UV_VERSION=$(uv --version | cut -d' ' -f2) -t incident-investigator .
 docker run --rm incident-investigator list-scenarios
-docker run --rm -e ANTHROPIC_API_KEY -v "$PWD/runs:/app/runs" incident-investigator investigate --scenario INC-02
+docker run --rm -e ANTHROPIC_API_KEY -e GEMINI_API_KEY -v "$PWD/runs:/app/runs" incident-investigator investigate --scenario INC-02
 ```
 
 On Linux, add `--user "$(id -u):$(id -g)"` to `docker run` so the files written to `runs/` belong to you.
@@ -16464,7 +17416,7 @@ On Linux, add `--user "$(id -u):$(id -g)"` to `docker run` so the files written 
 | A tool | Write an async function with a Pydantic input model and decorate it with `@tool` (see `src/investigator/tools/`). Add it to `build_registry`, and list its name under the agent's `tools:` in `config/agents.yaml` |
 | A telemetry backend | Implement a port from `src/investigator/backends/base.py` (for example a Loki `LogStore`) and pass it to `build_registry` |
 | A specialist agent | Add an entry under `specialists:` in `config/agents.yaml` and its prompt in `prompts/`. The planner sees it in its catalog |
-| An LLM provider | Implement `LLMClient` from `src/investigator/harness/llm.py` |
+| An LLM provider | Implement `LLMClient` from `src/investigator/harness/llm.py` (see `src/investigator/harness/gemini_client.py`), and add its model-id prefix to `PROVIDER_PREFIXES` in `src/investigator/harness/routing.py` |
 | A scenario | Add `datasets/scenarios/INC-13.yaml` and run `make data`. See [docs/dataset.md](docs/dataset.md) |
 
 ## Limitations and incomplete functionality
@@ -16475,16 +17427,19 @@ On Linux, add `--user "$(id -u):$(id -g)"` to `docker run` so the files written 
 - **Single process, in-memory state.** A crashed investigation is not resumed. The eval runner resumes only at run granularity.
 - **Small sample.** The final evaluation has 36 runs per system, so accuracy differences below about 17 percentage points are within noise. All results are for one model.
 - **Non-deterministic outputs.** Model output varies between runs. Only replays of recorded cassettes are exactly reproducible.
-- **Hard-coded prices.** Token prices in `src/investigator/evaluation/pricing.py` are hard-coded (October 2026) and must be updated when prices change.
-- **Beta fallback.** The refusal fallback uses a beta API (`server-side-fallback-2026-07-01`). Set `llm.refusal_fallback: false` if your account does not have it.
+- **Hard-coded prices.** Token prices in `src/investigator/evaluation/pricing.py` are hard-coded (October 2026) and must be updated when prices change. Google has announced Gemini increases for 2026-12-01 and 2027-01-01.
+- **Beta fallback.** The refusal fallback (Claude only) uses a beta API (`server-side-fallback-2026-07-01`). Set `llm.refusal_fallback: false` if your account does not have it. Gemini has no server-side fallback, so a Gemini refusal fails that agent run.
+- **Prompts tuned on Claude.** The prompts, effort levels and budgets were written for Claude. Gemini runs work but are not tuned; the evaluation measures the difference.
+- **Gemini API choice.** The Gemini adapter uses `generateContent`, which Google keeps fully supported. Google's newer Interactions API is not used.
 
 ## External dependencies
 
 | Dependency | Needed for | Notes |
 |---|---|---|
-| Anthropic API (`claude-opus-5-5`) | Real investigations and evaluations | `ANTHROPIC_API_KEY`; costs money; offline tests never call it |
+| Anthropic API (`claude-opus-5-5`) | Real investigations and evaluations on Claude | `ANTHROPIC_API_KEY`; costs money; offline tests never call it |
+| Gemini API (e.g. `gemini-4-argon`) | Real investigations and evaluations on Gemini | `GEMINI_API_KEY`; costs money; offline tests never call it |
 | Python 3.14 and uv | Everything | `uv sync` installs the versions pinned in `uv.lock` |
-| `anthropic`, `pydantic`, `pyyaml`, `typer`, `rich` | Runtime | Versions in `pyproject.toml` |
+| `anthropic`, `google-genai`, `pydantic`, `pyyaml`, `typer`, `rich` | Runtime | Versions in `pyproject.toml` |
 | Docker (optional) | The container image | — |
 | GitHub Actions (optional) | CI and on-demand evaluations | — |
 
@@ -16691,7 +17646,7 @@ on:
         required: true
         default: "1"
       model:
-        description: "Model id for every agent and the baseline"
+        description: "Model id for every agent and the baseline (claude-* or gemini-*)"
         required: true
         default: "claude-opus-5-5"
       min_accuracy:
@@ -16712,6 +17667,7 @@ jobs:
     timeout-minutes: 360
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       SCENARIOS: ${{ inputs.scenarios }}
       TRIALS: ${{ inputs.trials }}
       MODEL: ${{ inputs.model }}
@@ -17505,4 +18461,5 @@ git commit -m "eval: critic ablation results"
 | No hardcoded answers | 5.12, Global Constraints |
 | Incomplete functionality and external dependencies documented | 7.2 |
 | Extensible tools without MCP; MCP attachable | 3.2, 4.6, 8.1 |
+| Runs on several LLM providers (Claude and Gemini), per run or per agent | 3.10, 5.2, 5.9, 6.2, 6.5 |
 | Automated testing and evaluation instead of manual testing | 3.6, 3.9, 5.11, 6.1–6.5, 7.3 |

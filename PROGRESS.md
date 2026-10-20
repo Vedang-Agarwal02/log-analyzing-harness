@@ -21,6 +21,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 3.7 Agent loop
 - [x] 3.8 Anthropic client
 - [x] 3.9 Recording client
+- [x] 3.10 Gemini client & provider routing
 - [ ] 4.1 Backend ports
 - [ ] 4.2 Analysis helpers
 - [ ] 4.3 Simulated backends
@@ -72,5 +73,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - 2026-10-20: 3.7 done. test_harness_agent.py: 12 passed.
 - 2026-10-20: 3.8 done. test_anthropic_client.py: 6 passed (offline, fake SDK).
 - 2026-10-20: 3.9 done. test_harness_recording.py: 3 passed.
-- 2026-10-20: M3 check: pytest 114 passed, mypy clean (no ignores needed).
+- 2026-10-20: 3.10 done. test_harness_gemini_client.py + test_harness_routing.py: 22 passed. Added google-genai 2.31.0 via uv add; GEMINI_API_KEY placeholder in .env.example.
+- 2026-10-20: M3 check: pytest 136 passed, mypy clean (no ignores needed).
 - TYPE-IGNORE: src/investigator/datagen/generate.py:369 `[assignment]` (loop variable `service` reused from a PlatformService loop; no logic change).
+- 2026-10-20: Plan updated in docs/design/ (do Task 3.10 next, before 4.1): new Task 3.10 adds the Gemini client and model-id provider routing; Tasks 5.2, 5.9, 5.10, 6.2, 6.5 and 7.x now include the Gemini wiring. The Task 2.3 ignore above is fine as is (the plan now renames the variable instead).

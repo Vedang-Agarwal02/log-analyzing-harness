@@ -89,21 +89,23 @@ Also stop at a paid step, at a HUMAN STEP, and whenever you are stuck (section 3
 
 ## 5. For the person: setup and sessions
 
-Setup, once:
+The repository is `incident-investigator/`, next to the three design files in `/Users/vedang.agarwal/Desktop/personal/projects/orange-invest-assignment/`. The coding model reads its own copies in `incident-investigator/docs/design/`.
+
+To set up the folder, or to refresh the copies after the design files change, run:
 
 ```bash
-mkdir -p ~/code/incident-investigator/docs/design
+mkdir -p "/Users/vedang.agarwal/Desktop/personal/projects/orange-invest-assignment/incident-investigator/docs/design"
 ```
 
 ```bash
-cp "/Users/vedang.agarwal/Documents/Important docs/Resume/orange-invest-assignment/"0*.md ~/code/incident-investigator/docs/design/
+cp "/Users/vedang.agarwal/Desktop/personal/projects/orange-invest-assignment/"0*.md "/Users/vedang.agarwal/Desktop/personal/projects/orange-invest-assignment/incident-investigator/docs/design/"
 ```
 
 Then:
-- **Open the folder.** Open `~/code/incident-investigator` in Claude Code with Haiku 5.5 selected. Choose the permission mode that auto-accepts edits, and click "always allow" for `uv`, `git` and `make` the first time each is asked.
+- **Open the folder.** Open `incident-investigator/` in Claude Code with Haiku 5.5 selected. Choose the permission mode that auto-accepts edits, and click "always allow" for `uv`, `git` and `make` the first time each is asked.
 - **Start every session in a new chat** with: **Read docs/design/00-execution-guide.md and follow it.**
 - **Run one session at a time.** Tasks build on each other, so parallel sessions would conflict.
-- **Keep your API key out of the coding session.** When it stops at a paid step, run the command yourself in your own terminal with `ANTHROPIC_API_KEY` exported, then tell it to continue.
+- **Keep your API keys out of the coding session.** When it stops at a paid step, run the command yourself in your own terminal with the key exported, then tell it to continue: `ANTHROPIC_API_KEY` for `claude-*` models, `GEMINI_API_KEY` for `gemini-*` models.
 - **Check each stop.** `make check` should pass. Read any `PLAN-FIX` or `TYPE-IGNORE` lines in `PROGRESS.md`; they mark where the build departed from the plan.
 - **Keep every session's transcript.** Task 7.4 needs them in `docs/transcripts/`.
 
