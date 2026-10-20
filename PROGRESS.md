@@ -49,7 +49,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 6.4 Summary & eval CLI
 - [x] 6.5 Cassettes, replay test & live smoke
 - [x] 7.1 Docs
-- [ ] 7.2 README
+- [x] 7.2 README
 - [ ] 7.3 Docker & CI
 - [ ] 7.4 Full eval, technical note, transcripts
 - [ ] 8.1 MCP toolset adapter (optional)
@@ -120,3 +120,4 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - SKIPPED: Task 6.5 Step 3 (no Anthropic API key). Step 4 not needed. The Claude path has therefore never run against the real API.
 - 2026-10-20: 6.5 done, with these left for the person. (1) Step 5 cassettes: `INC-01-single` is recorded and replays (tests/cassettes/gemini-3.8-flash/); `INC-01-multi` must be re-recorded after the Gemini fix, because the first recording captured the failing requests: `uv run investigator record-cassettes --scenario INC-01 --systems multi --model gemini-3.8-flash --out-dir tests/cassettes/gemini-3.8-flash --yes`, then `uv run pytest tests/integration/test_replay.py -q`. (2) Step 7: tests/live/test_live_gemini.py is written (model from `GEMINI_SMOKE_MODEL`, default gemini-3.8-flash); run `uv run pytest tests/live/test_live_gemini.py -m live -q` with GEMINI_API_KEY set. The smoke evaluation (Step 6) was run on Gemini before the fix, so its multi-agent numbers include failed specialist tasks.
 - 2026-10-20: 7.1 done. test_docs.py: 2 passed. docs/architecture.md and docs/dataset.md copied from the plan.
+- 2026-10-20: 7.2 done. test_readme.py: 2 passed. README written from the plan with five corrections, also made in the plan so no further PLAN-FIX is needed: the replay example uses the per-model cassette folder (and runs offline with no keys: INC-01 single replays in 5.5 s), `make record` needs MODEL, the evaluation concurrency default is 4 (changed in Task 5.15, the README table still said 2), the final results link points at `final-gemini-3.8-flash`, and a new limitation says the Claude path has not been run live.

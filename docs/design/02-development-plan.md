@@ -18895,10 +18895,10 @@ To run on Gemini instead, export `GEMINI_API_KEY` and add `--model gemini-4-argo
 
 The command prints the status, the top hypothesis, token use and the path of `runs/<run-id>/report.md`. To see what every agent and tool did, run `uv run investigator show-trace runs/<run-id>`.
 
-Replay a recorded run offline, with no key and no cost:
+Replay a recorded run offline, with no key and no cost. Cassettes are stored per model in `tests/cassettes/<model id>/`, and the replay must use the model the recording was made with:
 
 ```bash
-uv run investigator investigate --scenario INC-01 --replay tests/cassettes/INC-01-multi.json
+uv run investigator investigate --scenario INC-01 --system single --model gemini-3.8-flash --replay tests/cassettes/gemini-3.8-flash/INC-01-single.json
 ```
 
 ## Commands
@@ -18911,10 +18911,10 @@ uv run investigator investigate --scenario INC-01 --replay tests/cassettes/INC-0
 | `investigator show-trace RUN_DIR` | Prints a run's trace as a tree of phases, LLM calls and tool calls |
 | `investigator eval` | Runs the evaluation. Options: `--scenarios`, `--systems`, `--trials`, `--concurrency`, `--model`, `--out`, `--config`, `--yes`, `--no-critic`, `--min-accuracy` |
 | `investigator summarize RESULTS_DIR` | Rebuilds `results.md` and `summary.json` from `results.jsonl` |
-| `investigator record-cassettes` | Records real responses for the offline replay tests |
+| `investigator record-cassettes` | Records real responses for the offline replay tests (`--model`, `--out-dir tests/cassettes/<model id>`) |
 | `investigator ui` | Opens the demo UI in your browser (see below) |
 
-Make targets: `make setup`, `make data`, `make test`, `make lint`, `make format`, `make typecheck`, `make check`, `make run` (e.g. `make run SCENARIO=INC-02 SYSTEM=single`), `make ui`, `make eval-smoke`, `make eval`, `make record`.
+Make targets: `make setup`, `make data`, `make test`, `make lint`, `make format`, `make typecheck`, `make check`, `make run` (e.g. `make run SCENARIO=INC-02 SYSTEM=single`), `make ui`, `make eval-smoke`, `make eval`, `make record` (needs `MODEL`, e.g. `make record MODEL=gemini-3.8-flash`).
 
 ## Configuration
 
@@ -18931,7 +18931,7 @@ Every setting is in `config/default.yaml`. Use `--config my.yaml` to load anothe
 | `investigation.critic_enabled` | `true` | `--no-critic` turns the critic loop off (ablation) |
 | `budget.max_total_tokens` | `1500000` | Shared by all agents in a run; `budget.reserve_tokens` (150000) is kept for the reporter |
 | `tools.default_timeout_s`, `tools.max_attempts` | `8`, `3` | Per tool call |
-| `evaluation.trials`, `evaluation.concurrency` | `3`, `2` | Repetitions per scenario and system, and runs in parallel |
+| `evaluation.trials`, `evaluation.concurrency` | `3`, `4` | Repetitions per scenario and system, and runs in parallel |
 
 Agents (prompt, tools, effort, turn limits, and an optional per-agent `model`) are defined in `config/agents.yaml`, and their prompts in `prompts/`. Giving agents models from different providers mixes Claude and Gemini in one run.
 
@@ -18950,7 +18950,7 @@ Diagrams and details: [docs/architecture.md](docs/architecture.md). Dataset: [do
 ## Evaluation
 
 ```bash
-make eval-smoke    # 2 scenarios x 2 systems x 1 trial, about $5
+make eval-smoke    # 2 scenarios x 2 systems x 1 trial, about $5 on Opus 5.5, under $1 on gemini-3.8-flash
 make eval          # 12 scenarios x 2 systems x 3 trials, about $100 on Opus 5.5 or $75 on gemini-4-argon (asks first)
 ```
 
@@ -18959,7 +18959,7 @@ Results go to `evals/results/<timestamp>-<model>/`:
 - `errors.jsonl`: infrastructure failures, which are never scored.
 - `summary.json` and `results.md`.
 
-An interrupted evaluation resumes when you pass the same `--out`. For cheaper development runs add `--model claude-haiku-5-5` (under $5 for the full suite) or `--model gemini-3.8-flash`. To compare providers, run the same evaluation again with `--model gemini-4-argon` and its own `--out`.
+An interrupted evaluation resumes when you pass the same `--out`. For cheaper development runs add `--model claude-haiku-5-5` (under $5 for the full suite) or `--model gemini-3.8-flash`. To compare providers, run the same evaluation again with another `--model` (for example `gemini-4-argon`) and its own `--out`.
 
 Quality metrics:
 - Root-cause accuracy (top-1 and top-3) and trigger accuracy
@@ -18971,7 +18971,7 @@ Quality metrics:
 
 Efficiency metrics (per run): LLM calls, tool calls, tokens, cost and wall-clock.
 
-The final results and their interpretation: [docs/technical-note.md](docs/technical-note.md) and `evals/results/final-claude-opus-5-5/results.md`.
+The final results and their interpretation: [docs/technical-note.md](docs/technical-note.md) and `evals/results/final-gemini-3.8-flash/results.md`.
 
 ## Testing
 
@@ -18980,7 +18980,7 @@ The final results and their interpretation: [docs/technical-note.md](docs/techni
 | Unit | `uv run pytest tests/unit` | Domain models, generator, harness, tools, validators, policies, scoring, pricing |
 | Integration | `uv run pytest tests/integration` | Full investigations with a scripted model (parallelism, feedback rounds, failures, budgets), CLI, eval runner, cassette replay |
 | Architecture | `uv run pytest tests/architecture` | Layering, no ground-truth leakage, docs, CI files, deliverables |
-| Live | `uv run pytest -m live` | Real API smoke test (about $2) |
+| Live | `uv run pytest -m live` | Real API smoke tests: Claude (about $2, needs `ANTHROPIC_API_KEY`) and Gemini (under $1, needs `GEMINI_API_KEY`; `GEMINI_SMOKE_MODEL` picks the model) |
 
 CI (`.github/workflows/ci.yml`) runs on every push and pull request. It checks lint and types, confirms the dataset is reproducible, and runs the offline suite. `.github/workflows/eval.yml` runs a paid evaluation on demand. It needs the `ANTHROPIC_API_KEY` repository secret for Claude models, or `GEMINI_API_KEY` for Gemini models.
 
@@ -19024,6 +19024,7 @@ On Linux, add `--user "$(id -u):$(id -g)"` to `docker run` so the files written 
 - **Hard-coded prices.** Token prices in `src/investigator/evaluation/pricing.py` are hard-coded (October 2026) and must be updated when prices change. Google has announced Gemini increases for 2026-12-01 and 2027-01-01.
 - **Beta fallback.** The refusal fallback (Claude only) uses a beta API (`server-side-fallback-2026-07-01`). Set `llm.refusal_fallback: false` if your account does not have it. Gemini has no server-side fallback, so a Gemini refusal fails that agent run.
 - **Prompts tuned on Claude.** The prompts, effort levels and budgets were written for Claude. Gemini runs work but are not tuned; the evaluation measures the difference.
+- **Claude path not run live.** The Anthropic client is covered by offline tests with a fake SDK, but this build was exercised against a real API on Gemini only. Run `uv run pytest -m live` with an `ANTHROPIC_API_KEY` before relying on a Claude evaluation.
 - **Gemini API choice.** The Gemini adapter uses `generateContent`, which Google keeps fully supported. Google's newer Interactions API is not used.
 
 ## External dependencies
@@ -19056,7 +19057,7 @@ docs/              architecture, dataset, technical note, example reports, trans
 | Runnable code and setup | This README, `src/`, `Makefile`, `Dockerfile` |
 | Architecture diagram | [docs/architecture.md](docs/architecture.md) |
 | Dataset and tests | `datasets/`, [docs/dataset.md](docs/dataset.md), `tests/` |
-| Evaluation results | `evals/results/final-claude-opus-5-5/results.md` |
+| Evaluation results | `evals/results/final-gemini-3.8-flash/results.md` |
 | Technical note (≤ 500 words) | [docs/technical-note.md](docs/technical-note.md) |
 | Example reports | `docs/examples/` |
 | Coding-assistant transcripts | `docs/transcripts/` |
