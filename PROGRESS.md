@@ -18,7 +18,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 3.4 Hooks & tracing
 - [x] 3.5 Tool executor
 - [x] 3.6 Scripted LLM
-- [ ] 3.7 Agent loop
+- [x] 3.7 Agent loop
 - [ ] 3.8 Anthropic client
 - [ ] 3.9 Recording client
 - [ ] 4.1 Backend ports
@@ -69,4 +69,5 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - 2026-10-20: 3.4 done. test_harness_tracing.py: 3 passed.
 - 2026-10-20: 3.5 done. test_harness_executor.py: 9 passed.
 - 2026-10-20: 3.6 done. test_harness_scripted.py: 4 passed.
+- 2026-10-20: 3.7 done. test_harness_agent.py: 12 passed.
 - TYPE-IGNORE: src/investigator/datagen/generate.py:369 `[assignment]` (loop variable `service` reused from a PlatformService loop; no logic change).
