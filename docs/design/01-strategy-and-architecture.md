@@ -523,7 +523,7 @@ report.status = derive_status(report, final_critique)
 | Agent turns / tool calls | Per agent (e.g., observability 12 / 16; baseline 40 / 60) | Agent loop |
 | Tool attempts / tool timeout | 3 / 8 s | Tool executor |
 | Circuit breaker | Opens after 4 consecutive failures per (tool, service) for 30 s | Tool executor |
-| Global budget | 1.5M tokens, 80 LLM calls, 120 tool calls, 900 s | `Budget` (shared by all agents) |
+| Global budget | 1.5M tokens, 120 LLM calls, 250 tool calls, 1800 s (raised after the first live run used 111 tool calls and 766 s in one round) | `Budget` (shared by all agents) |
 | Reporter reserve | 150K tokens + 120 s held back so a report is **always** produced | `Budget.check(reserve)` |
 
 Termination reasons: `critic_accepted`, `max_rounds_reached`, `budget_exhausted`, `stagnated` (top hypothesis and confidence unchanged across two rounds), `planner_concluded`, `no_new_tasks`, `critic_failed`, `reasoning_failed`. The reason is recorded in the trace and the report.
@@ -670,7 +670,7 @@ Current Claude models reject forced `tool_choice` (`any`/`tool`) with a 400. We 
 |---|---|---|
 | Model | `claude-opus-5-5` everywhere (configurable per agent) | Strongest Opus at $4/$20 per MTok; 1M context |
 | Thinking | Omitted (Opus 5.5 always uses adaptive thinking; `disabled` would return a 400) | Depth is controlled through effort |
-| Effort | `medium` for planner, specialists and reporter; `high` for reasoning, critic and baseline | The default on Opus 5.5 is `medium`, so we set it explicitly. Reasoning-heavy roles get more |
+| Effort | `medium` for planner, specialists, critic and reporter; `high` for reasoning and baseline. The critic was lowered from `high` after it took 519 of 766 s in the first live run | The default on Opus 5.5 is `medium`, so we set it explicitly. Reasoning-heavy roles get more |
 | Streaming | `messages.stream(...)` + `get_final_message()`; `max_tokens` 32000 | Avoids HTTP timeouts on long thinking turns |
 | Tools | `eager_input_streaming: true`; every input re-validated with Pydantic; tools run only when `stop_reason` is not `max_tokens`/`refusal` | Recommended with streaming; truncated input never executes |
 | `tool_choice` | `auto` (the default) | Forced tool use returns a 400 on Opus 5.5 |
@@ -1116,7 +1116,7 @@ The development plan expands these into small test-first tasks.
 |---|---|---|
 | Eval model | `claude-opus-5-5` for every agent and the baseline | Budget is tight: run development evals on `claude-haiku-5-5`, `claude-sonnet-5-5` or `gemini-3.8-flash`, and the final eval on Opus 5.5. To compare providers, repeat the final eval on `gemini-4-argon` |
 | Trials per scenario | 3 | You want tighter error bars (5 trials ≈ ±13 points) |
-| Effort levels | medium (most roles), high (reasoning, critic, baseline) | The smoke run shows quality headroom or cost pressure |
+| Effort levels | medium (most roles, including the critic), high (reasoning, baseline) | The smoke run shows quality headroom or cost pressure |
 | LLM judge | Not built | You want a model-graded "claims supported" metric (use a different model, e.g. `claude-haiku-5-5`) |
 | Refusal fallback | On (`fallbacks: "default"`) | You'd rather a refusal simply fail the run |
 | Optional M8 items | Not in the critical path | Time remains before the deadline |

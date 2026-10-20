@@ -80,8 +80,8 @@ These are the conditions most likely to break the software in real use that ordi
 | Root-cause categories | `bad_deployment`, `config_change`, `dependency_failure`, `resource_exhaustion`, `traffic_surge`, `infrastructure`, `data_issue`, `unknown` |
 | Report status | `root_cause_identified` (top confidence ≥ 0.75, and the critic accepted when a critic ran), `probable_root_cause` (≥ 0.50), `inconclusive` (< 0.50). Derived by code |
 | Evidence ID prefixes | `logpat-`, `log-`, `met-`, `dep-`, `cfg-`, `topo-`, `hist-` (and `mcp-` for MCP tools, optional M8) |
-| Limits (defaults) | 3 rounds; 4 parallel tasks; 12 tasks total; 2 attempts per task; 3 attempts per tool call; tool timeout 8 s; budget 1.5M tokens / 80 LLM calls / 120 tool calls / 900 s, with a reporter reserve of 150K tokens / 8 calls / 120 s |
-| Effort | planner, observability, dependency, reporter: `medium`; reasoning, critic, single_agent: `high` |
+| Limits (defaults) | 3 rounds; 4 parallel tasks; 12 tasks total; 2 attempts per task; 3 attempts per tool call; tool timeout 8 s; budget 1.5M tokens / 120 LLM calls / 250 tool calls / 1800 s (raised in Task 5.15), with a reporter reserve of 150K tokens / 8 calls / 120 s |
+| Effort | planner, observability, dependency, reporter: `medium`; reasoning, single_agent: `high`; critic: `high` until Task 5.15 lowers it to `medium` |
 | Streaming | `messages.stream(...)` + `get_final_message()`, `max_tokens` 32000 |
 | Demo UI | Plain Streamlit page (`investigator ui`) that reads run files and starts runs through the CLI. No styling work: it is for showing runs, files and failures |
 | LLM providers | Chosen from the model id by `harness/routing.py`: `claude-*` → Anthropic client (default `claude-opus-5-5`), `gemini-*` → Gemini client (`generateContent` through `google-genai`). Per-agent `model` entries in `config/agents.yaml` may mix providers |
@@ -130,7 +130,7 @@ incident-investigator/
 | M2 Dataset | 2.1 Scenario spec · 2.2 Platform model & platform.yaml · 2.3 Generator · 2.4 Scenarios INC-01–06 · 2.5 Scenarios INC-07–12 |
 | M3 Harness | 3.1 Neutral modules & LLM types · 3.2 Schema & tools · 3.3 Retry & budget · 3.4 Hooks & tracing · 3.5 Tool executor · 3.6 Scripted LLM · 3.7 Agent loop · 3.8 Anthropic client · 3.9 Recording client · 3.10 Gemini client & provider routing |
 | M4 Backends & tools | 4.1 Backend ports · 4.2 Analysis helpers · 4.3 Simulated backends · 4.4 Fault injector · 4.5 Log & metric tools · 4.6 Change, topology, history, evidence tools & registry |
-| M5 Agents & orchestration | 5.1 Prompts · 5.2 Settings & config · 5.3 Output tools & validators · 5.4 Agent catalog · 5.5 Context builders · 5.6 Policies · 5.7 Scheduler · 5.8 Coordinator · 5.9 Baseline, Markdown report & runtime · 5.10 CLI · 5.11 Integration tests · 5.12 Architecture tests · 5.13 Demo UI data & CLI hooks · 5.14 Demo UI page |
+| M5 Agents & orchestration | 5.1 Prompts · 5.2 Settings & config · 5.3 Output tools & validators · 5.4 Agent catalog · 5.5 Context builders · 5.6 Policies · 5.7 Scheduler · 5.8 Coordinator · 5.9 Baseline, Markdown report & runtime · 5.10 CLI · 5.11 Integration tests · 5.12 Architecture tests · 5.13 Demo UI data & CLI hooks · 5.14 Demo UI page · 5.15 Tune limits & critic effort |
 | M6 Evaluation | 6.1 Ground truth & scoring · 6.2 Pricing · 6.3 Eval runner · 6.4 Summary & eval CLI · 6.5 Cassettes, replay test & live smoke |
 | M7 Delivery | 7.1 Docs · 7.2 README · 7.3 Docker & CI · 7.4 Full eval, technical note, transcripts |
 | M8 Optional | 8.1 MCP toolset adapter · 8.2 Critic ablation run |
@@ -381,6 +381,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [ ] 5.12 Architecture tests
 - [ ] 5.13 Demo UI data layer & CLI hooks
 - [ ] 5.14 Demo UI page
+- [ ] 5.15 Tune limits, critic effort & eval concurrency
 - [ ] 6.1 Ground truth & scoring
 - [ ] 6.2 Pricing
 - [ ] 6.3 Eval runner
@@ -16604,7 +16605,7 @@ Run: `uv run investigator ui` (or `make ui`). Your browser opens http://localhos
 - **Runs and files** shows every run under `runs/` and `evals/results/`.
 - **Run an incident** starts a run, using the model typed in the Model box. Start the UI from a terminal that has that provider's key or Vertex AI settings exported. Replay works only for scenarios that have a recording in `tests/cassettes/` (Task 6.5).
 
-- [ ] **Step 6: Milestone check and commit**
+- [ ] **Step 6: Full check and commit**
 
 Run: `uv run pytest -q && uv run mypy`
 Expected: all tests pass and mypy reports `Success`. If mypy reports errors, apply the type-ignore rule.
@@ -16612,6 +16613,85 @@ Expected: all tests pass and mypy reports `Success`. If mypy reports errors, app
 ```bash
 git add -A
 git commit -m "feat(ui): plain Streamlit demo UI for runs, files, failures and live investigations"
+```
+
+---
+
+### Task 5.15: Tune run limits, critic effort and evaluation concurrency from the first live run
+
+The first live run (INC-01 on `gemini-3.8-flash`) found the right root cause, but:
+- It used 111 of the 120 allowed tool calls and 766 of the 900 allowed seconds in a single round, so a multi-round scenario would stop with `budget_exhausted`.
+- The critic, at `high` effort, took 519 of the 766 seconds.
+- At about 13 minutes per run, a 72-run evaluation at concurrency 2 would take about 8 hours.
+
+This task raises the limits, lowers the critic's effort to `medium`, and runs four evaluation jobs in parallel. Reasoning stays at `high`, so the single-agent baseline (also `high`) still matches the highest effort any multi-agent component uses. The budget is shared by every agent of a run, and the baseline gets the same budget, so the comparison stays fair.
+
+**Files:**
+- Modify: `config/default.yaml`, `src/investigator/settings.py`, `config/agents.yaml`, `tests/unit/test_settings.py`, `tests/unit/test_agents_catalog.py`
+
+**Interfaces:**
+- Changes defaults only: `BudgetConfig` (`max_llm_calls` 120, `max_tool_calls` 250, `max_wall_seconds` 1800), `EvaluationConfig` (`concurrency` 4, `run_timeout_s` 2700), critic `effort: medium`. No names or signatures change.
+
+- [ ] **Step 1: Update the two tests first**
+
+In `tests/unit/test_settings.py`, replace `settings.budget.max_tool_calls == 120` with `settings.budget.max_tool_calls == 250`.
+
+In `tests/unit/test_agents_catalog.py`, replace `catalog.critic.effort == "high"` with `catalog.critic.effort == "medium"`.
+
+- [ ] **Step 2: Run them to verify they fail**
+
+Run: `uv run pytest tests/unit/test_settings.py tests/unit/test_agents_catalog.py -q`
+Expected: 2 failures (`assert 120 == 250` and `assert 'high' == 'medium'`).
+
+- [ ] **Step 3: Change the defaults**
+
+In `config/default.yaml`, replace each line on the left with the line on the right (keep the comments that follow them):
+
+| Find | Replace with |
+|---|---|
+| `  max_llm_calls: 80` | `  max_llm_calls: 120` |
+| `  max_tool_calls: 120` | `  max_tool_calls: 250` |
+| `  max_wall_seconds: 900` | `  max_wall_seconds: 1800` |
+| `  concurrency: 2` | `  concurrency: 4` |
+| `  run_timeout_s: 1500` | `  run_timeout_s: 2700` |
+
+In `src/investigator/settings.py`, make the same changes to the built-in defaults:
+
+| Find | Replace with |
+|---|---|
+| `    max_llm_calls: int = 80` | `    max_llm_calls: int = 120` |
+| `    max_tool_calls: int = 120` | `    max_tool_calls: int = 250` |
+| `    max_wall_seconds: float = 900.0` | `    max_wall_seconds: float = 1800.0` |
+| `    concurrency: int = 2` | `    concurrency: int = 4` |
+| `    run_timeout_s: float = 1500.0` | `    run_timeout_s: float = 2700.0` |
+
+In `config/agents.yaml`, in the `critic:` block only, change `  effort: high` to `  effort: medium`. The block must end up exactly like this:
+
+```yaml
+critic:
+  prompt: critic.md
+  output: critique
+  tools: [get_evidence]
+  effort: medium
+  max_turns: 6
+  max_tool_calls: 6
+```
+
+Leave `reasoning` and `single_agent` at `effort: high`.
+
+- [ ] **Step 4: Run the tests to verify they pass**
+
+Run: `uv run pytest tests/unit/test_settings.py tests/unit/test_agents_catalog.py -q`
+Expected: all pass.
+
+- [ ] **Step 5: Milestone check and commit**
+
+Run: `uv run pytest -q && uv run mypy`
+Expected: all tests pass and mypy reports `Success`.
+
+```bash
+git add -A
+git commit -m "chore(config): raise run limits, critic effort medium, eval concurrency 4 (from the first live run)"
 ```
 
 ---
@@ -18436,7 +18516,7 @@ The model id decides the provider: `claude-*` ids run on the Anthropic client an
 | Observability | Finds anomalies and their onset, separates causes from symptoms, reports data gaps | `detect_anomalies`, `list_metrics`, `query_metrics`, `query_logs` | `submit_findings` | medium |
 | Dependency | Correlates deployments and config changes with the onset, walks the topology, rules out coincidental changes | `get_deployments`, `get_config_changes`, `get_service_dependencies`, `list_services` | `submit_findings` | medium |
 | Reasoning | Builds 2–5 competing hypotheses with mechanisms, supporting and contradicting evidence, assumptions and calibrated confidence | `search_incident_history`, `get_evidence` | `submit_hypotheses` | high |
-| Critic | Adversarial review: unsupported claims, timeline violations, ignored contradictions, overconfidence | `get_evidence` | `submit_critique` | high |
+| Critic | Adversarial review: unsupported claims, timeline violations, ignored contradictions, overconfidence | `get_evidence` | `submit_critique` | medium |
 | Reporter | Writes the final report from the record without adding new claims | `get_evidence` | `submit_report` | medium |
 | Single-agent baseline | Does everything alone | all 10 data tools | `submit_report` | high |
 
@@ -18481,7 +18561,7 @@ Grounding rules:
 | Agent turns / tool calls | per agent (e.g. observability 12 / 16, baseline 40 / 60) | Agent loop |
 | Tool attempts / tool timeout | 3 / 8 s | Tool executor |
 | Circuit breaker | opens after 4 failed calls per (tool, service) for 30 s | Tool executor |
-| Global budget | 1.5M tokens, 80 LLM calls, 120 tool calls, 900 s | `Budget`, shared by all agents |
+| Global budget | 1.5M tokens, 120 LLM calls, 250 tool calls, 1800 s | `Budget`, shared by all agents |
 | Reporter reserve | 150K tokens, 8 calls, 120 s held back so a report is always produced | `Budget` |
 
 | Failure | Behavior |
@@ -18809,7 +18889,7 @@ Diagrams and details: [docs/architecture.md](docs/architecture.md). Dataset: [do
 
 ```bash
 make eval-smoke    # 2 scenarios x 2 systems x 1 trial, about $5
-make eval          # 12 scenarios x 2 systems x 3 trials, about $100 on Opus 5.5 (asks first)
+make eval          # 12 scenarios x 2 systems x 3 trials, about $100 on Opus 5.5 or $75 on gemini-4-argon (asks first)
 ```
 
 Results go to `evals/results/<timestamp>-<model>/`:
@@ -19446,7 +19526,9 @@ Real backends behind the existing ports (Loki, Prometheus, ArgoCD); durable exec
 Run: `uv run pytest tests/unit/test_render_note.py -q`
 Expected: `2 passed`
 
-- [ ] **Step 4: Run the final evaluation (HUMAN STEP: needs `ANTHROPIC_API_KEY`; about $100 and 2–3 hours on Claude Opus 5.5)**
+- [ ] **Step 4: Run the final evaluation (HUMAN STEP: needs an API key; about 4 hours at concurrency 4; about $100 on Claude Opus 5.5, or about $75 on `gemini-4-argon` before 2026-12-01 and about $150 after)**
+
+On Gemini, add `--model gemini-4-argon` to the command and use `final-gemini-4-argon` instead of `final-claude-opus-5-5` in this step and Steps 5–6.
 
 Ask the person to approve the cost before running.
 
