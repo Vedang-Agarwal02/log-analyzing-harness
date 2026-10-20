@@ -52,9 +52,9 @@ class InvestigationConfig(BaseModel):
 
 class BudgetConfig(BaseModel):
     max_total_tokens: int = 1_500_000
-    max_llm_calls: int = 80
-    max_tool_calls: int = 120
-    max_wall_seconds: float = 900.0
+    max_llm_calls: int = 120
+    max_tool_calls: int = 250
+    max_wall_seconds: float = 1800.0
     reserve_tokens: int = 150_000
     reserve_llm_calls: int = 8
     reserve_seconds: float = 120.0
@@ -93,8 +93,8 @@ class SimulationConfig(BaseModel):
 
 class EvaluationConfig(BaseModel):
     trials: int = 3
-    concurrency: int = 2
-    run_timeout_s: float = 1500.0
+    concurrency: int = 4
+    run_timeout_s: float = 2700.0
 
 
 class Settings(BaseModel):

@@ -21,7 +21,7 @@ def test_overrides_deep_merge(repo_root: Path) -> None:
     )
     assert settings.llm.model == "claude-haiku-5-5"
     assert settings.llm.max_tokens == 32000
-    assert settings.budget.max_llm_calls == 5 and settings.budget.max_tool_calls == 120
+    assert settings.budget.max_llm_calls == 5 and settings.budget.max_tool_calls == 250
 
 
 def test_paths_resolve_against_project_root(repo_root: Path) -> None:

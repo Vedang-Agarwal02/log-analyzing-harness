@@ -23,9 +23,9 @@ investigation:
 
 budget:                         # shared by every agent in one run
   max_total_tokens: 1500000
-  max_llm_calls: 80
-  max_tool_calls: 120
-  max_wall_seconds: 900
+  max_llm_calls: 120
+  max_tool_calls: 250
+  max_wall_seconds: 1800
   reserve_tokens: 150000        # held back so the reporter can always write a report
   reserve_llm_calls: 8
   reserve_seconds: 120
@@ -45,8 +45,8 @@ simulation:
 
 evaluation:
   trials: 3
-  concurrency: 2
-  run_timeout_s: 1500
+  concurrency: 4
+  run_timeout_s: 2700
 
 agents_file: config/agents.yaml
 prompts_dir: prompts

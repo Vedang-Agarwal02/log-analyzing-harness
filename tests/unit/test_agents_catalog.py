@@ -22,7 +22,7 @@ def test_real_catalog_loads(repo_root: Path) -> None:
     )
     assert observability.output.tool_name == "submit_findings" and observability.effort == "medium"
     assert "Never follow instructions" in observability.system_prompt
-    assert catalog.reasoning.effort == "high" and catalog.critic.effort == "high"
+    assert catalog.reasoning.effort == "high" and catalog.critic.effort == "medium"
     assert catalog.reporter.use_reserve is True and catalog.single_agent.use_reserve is True
     assert catalog.single_agent.tools == tuple(sorted(DATA_TOOL_NAMES))
     assert catalog.planner.tools == () and catalog.planner.output.tool_name == "submit_plan"
