@@ -48,7 +48,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 6.3 Eval runner
 - [x] 6.4 Summary & eval CLI
 - [x] 6.5 Cassettes, replay test & live smoke
-- [ ] 7.1 Docs
+- [x] 7.1 Docs
 - [ ] 7.2 README
 - [ ] 7.3 Docker & CI
 - [ ] 7.4 Full eval, technical note, transcripts
@@ -119,3 +119,4 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - 2026-10-20: Test change made on purpose, not to hide a failure: `test_contents_echo_model_parts_and_group_function_responses` pinned the mixed user turn that the live API rejects, so its last assertions now expect the `harness_note` inside the last function response. Added `test_function_responses_never_share_a_user_turn_with_text`. Both failed before the fix. Full suite 266 passed; ruff and mypy clean.
 - SKIPPED: Task 6.5 Step 3 (no Anthropic API key). Step 4 not needed. The Claude path has therefore never run against the real API.
 - 2026-10-20: 6.5 done, with these left for the person. (1) Step 5 cassettes: `INC-01-single` is recorded and replays (tests/cassettes/gemini-3.8-flash/); `INC-01-multi` must be re-recorded after the Gemini fix, because the first recording captured the failing requests: `uv run investigator record-cassettes --scenario INC-01 --systems multi --model gemini-3.8-flash --out-dir tests/cassettes/gemini-3.8-flash --yes`, then `uv run pytest tests/integration/test_replay.py -q`. (2) Step 7: tests/live/test_live_gemini.py is written (model from `GEMINI_SMOKE_MODEL`, default gemini-3.8-flash); run `uv run pytest tests/live/test_live_gemini.py -m live -q` with GEMINI_API_KEY set. The smoke evaluation (Step 6) was run on Gemini before the fix, so its multi-agent numbers include failed specialist tasks.
+- 2026-10-20: 7.1 done. test_docs.py: 2 passed. docs/architecture.md and docs/dataset.md copied from the plan.
