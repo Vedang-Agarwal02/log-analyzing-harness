@@ -46,7 +46,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 6.1 Ground truth & scoring
 - [x] 6.2 Pricing
 - [x] 6.3 Eval runner
-- [ ] 6.4 Summary & eval CLI
+- [x] 6.4 Summary & eval CLI
 - [ ] 6.5 Cassettes, replay test & live smoke
 - [ ] 7.1 Docs
 - [ ] 7.2 README
@@ -109,3 +109,4 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - 2026-10-20: 6.1 done. test_evaluation_scoring.py (4) + test_scoring_oracle.py (12, one per scenario): 16 passed. The oracle scores 100% on every scenario and the null report matches the expected status.
 - 2026-10-20: 6.2 done. test_evaluation_pricing.py: 5 passed.
 - 2026-10-20: 6.3 done. test_eval_runner.py: 2 passed (concurrency, resume and the error sidecar; scripted LLM, no API calls).
+- 2026-10-20: 6.4 done. test_evaluation_summary.py (3) + test_cli_eval.py (1): 4 passed. The `eval` and `summarize` commands were already in cli.py from 5.10, so this task only added summary.py.
