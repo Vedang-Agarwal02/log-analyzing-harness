@@ -366,7 +366,7 @@ def _build_logs(
         ]
     rows.sort()
     records: list[dict[str, Any]] = []
-    for index, (ts, service, level, message) in enumerate(rows):
+    for index, (ts, service, level, message) in enumerate(rows):  # type: ignore[assignment]
         digest = hashlib.sha1(f"{spec.id}|{index}|{service}|{iso(ts)}".encode()).hexdigest()[:10]
         records.append(
             {
