@@ -26,7 +26,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 4.2 Analysis helpers
 - [x] 4.3 Simulated backends
 - [x] 4.4 Fault injector
-- [ ] 4.5 Log & metric tools
+- [x] 4.5 Log & metric tools
 - [ ] 4.6 Change, topology, history, evidence tools & registry
 - [ ] 5.1 Prompts
 - [ ] 5.2 Settings & config
@@ -81,3 +81,4 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - 2026-10-20: 4.2 done. test_backends_analysis.py: 6 passed.
 - 2026-10-20: 4.3 done. test_backends_simulated.py: 4 passed.
 - 2026-10-20: 4.4 done. test_backends_faults.py: 5 passed.
+- 2026-10-20: 4.5 done. test_tools_logs_metrics.py: 8 passed.
