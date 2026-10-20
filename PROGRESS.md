@@ -5,7 +5,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 0.1 Project scaffold
 - [x] 1.1 Common types
 - [x] 1.2 Incident & evidence models
-- [ ] 1.3 Findings, hypotheses, critique, plan models
+- [x] 1.3 Findings, hypotheses, critique, plan models
 - [ ] 1.4 Report & state models
 - [ ] 2.1 Scenario spec models
 - [ ] 2.2 Platform model & platform.yaml
@@ -55,3 +55,4 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - 2026-10-20: 0.1 done. Docs copied from the Desktop project folder (the path in 00-execution-guide.md section 5 did not exist). Smoke test passes; ruff clean.
 - 2026-10-20: 1.1 done. test_domain_common.py: 4 passed.
 - 2026-10-20: 1.2 done. test_domain_incident_evidence.py: 5 passed.
+- 2026-10-20: 1.3 done. test_domain_agent_outputs.py: 5 passed.
