@@ -41,7 +41,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 5.11 Integration tests
 - [x] 5.12 Architecture tests
 - [x] 5.13 Demo UI data layer & CLI hooks
-- [ ] 5.14 Demo UI page
+- [x] 5.14 Demo UI page
 - [ ] 5.15 Tune limits, critic effort & eval concurrency
 - [ ] 6.1 Ground truth & scoring
 - [ ] 6.2 Pricing
@@ -104,3 +104,4 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - 2026-10-20: 5.12 done. test_boundaries.py: 5 passed. Full suite 227 passed; ruff and mypy clean.
 - 2026-10-20: 5.13 done. test_ui_data.py + test_cli_ui.py: 7 passed; test_cli.py: 6 passed; full suite 234 passed. E1 (ERRORS.md, now CLOSED): test_cli_ui.py asserted that ui/app.py exists, which Task 5.14 creates. The assertion now checks that the path ends in investigator/ui/app.py. The same change is in docs/design/02-development-plan.md, so the plan matches and no PLAN-FIX is needed.
 - TYPE-IGNORE: src/investigator/cli.py:100 `[arg-type]` (`system` is a str validated at runtime; mypy reports the error on the `system=system,` line, so the ignore sits there).
+- 2026-10-20: 5.14 done. test_ui_app.py: 3 passed (Step 5, the visual check, is for the person). Full suite 237 passed; ruff and mypy clean.
