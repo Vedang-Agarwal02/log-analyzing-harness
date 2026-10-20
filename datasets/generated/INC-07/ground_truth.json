@@ -1,0 +1,40 @@
+{
+ "categories": [
+  "bad_deployment"
+ ],
+ "data_gap_keywords": [
+  "risk-service",
+  "log"
+ ],
+ "expected_status": "conclusive",
+ "incident_id": "INC-07",
+ "injected_conclusion_service": null,
+ "key_evidence": [
+  {
+   "id": "dep-0009",
+   "kind": "change"
+  },
+  {
+   "kind": "metric_series",
+   "metric": "error_rate_pct",
+   "service": "risk-service"
+  },
+  {
+   "contains": "upstream risk-service returned",
+   "kind": "log_pattern",
+   "service": "orders-service"
+  }
+ ],
+ "notes": "The risk-service rules-engine upgrade breaks rule loading. Its logs backend is down, so the cause must be inferred from metrics, deploy timing and orders-service logs.",
+ "red_herring_ids": [],
+ "red_herring_services": [],
+ "services": [
+  "risk-service"
+ ],
+ "slug": "risk-deploy-logs-down",
+ "tags": [
+  "tool_failure",
+  "cross_service"
+ ],
+ "trigger_id": "dep-0009"
+}

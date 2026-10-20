@@ -1,0 +1,39 @@
+{
+ "categories": [
+  "bad_deployment",
+  "resource_exhaustion"
+ ],
+ "data_gap_keywords": [],
+ "expected_status": "conclusive",
+ "incident_id": "INC-04",
+ "injected_conclusion_service": null,
+ "key_evidence": [
+  {
+   "id": "dep-0009",
+   "kind": "change"
+  },
+  {
+   "kind": "metric_series",
+   "metric": "memory_mb",
+   "service": "quotes-service"
+  },
+  {
+   "contains": "OOMKilled",
+   "kind": "log_pattern",
+   "service": "quotes-service"
+  }
+ ],
+ "notes": "A memory leak shipped two days earlier causes an out-of-memory restart every 5.5 hours. Normal market-open traffic is a distraction.",
+ "red_herring_ids": [],
+ "red_herring_services": [],
+ "services": [
+  "quotes-service"
+ ],
+ "slug": "quotes-memory-leak",
+ "tags": [
+  "misleading_evidence",
+  "slow_burn",
+  "wide_window"
+ ],
+ "trigger_id": "dep-0009"
+}

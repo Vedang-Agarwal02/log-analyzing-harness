@@ -1,0 +1,21 @@
+{
+ "faults": [
+  {
+   "fault": "partial",
+   "first_n": null,
+   "match": {
+    "metric": "error_rate_pct",
+    "service": "api-gateway"
+   },
+   "operation": "get_metric",
+   "params": {
+    "drop_ranges": [
+     [
+      "2026-07-21T15:23:00Z",
+      "2026-07-21T15:40:00Z"
+     ]
+    ]
+   }
+  }
+ ]
+}

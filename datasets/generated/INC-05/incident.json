@@ -1,0 +1,15 @@
+{
+ "affected_services": [
+  "web-app",
+  "api-gateway",
+  "auth-service"
+ ],
+ "customer_impact": "60% of logins failing",
+ "incident_id": "INC-05",
+ "initial_hypothesis": "auth-service seems to be overloaded.",
+ "reported_at": "2026-06-02T00:14:00Z",
+ "reporter": "identity on-call",
+ "severity": "SEV1",
+ "summary": "Since 00:00 UTC about 60% of login attempts fail and the mobile app shows \"Unable to sign in\". Users who are already signed in seem mostly fine.",
+ "title": "Login failures spiking"
+}

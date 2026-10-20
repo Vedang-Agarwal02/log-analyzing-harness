@@ -1,0 +1,59 @@
+{
+ "config_changes": [
+  {
+   "author": "esha",
+   "change_id": "cfg-0001",
+   "changed_at": "2026-07-04T13:22:00Z",
+   "key": "feature.dark_mode",
+   "new_value": "true",
+   "note": "Enable for all users",
+   "old_value": "false",
+   "service": "web-app",
+   "source": "feature_flag"
+  },
+  {
+   "author": "esha",
+   "change_id": "cfg-0002",
+   "changed_at": "2026-07-05T17:12:00Z",
+   "key": "feature.new_onboarding_flow",
+   "new_value": "5%",
+   "note": "Gradual rollout",
+   "old_value": "0%",
+   "service": "risk-service",
+   "source": "feature_flag"
+  },
+  {
+   "author": "bob",
+   "change_id": "cfg-0003",
+   "changed_at": "2026-07-07T00:25:00Z",
+   "key": "log.level",
+   "new_value": "DEBUG",
+   "note": "Temporary debug logging",
+   "old_value": "INFO",
+   "service": "web-app",
+   "source": "runtime_config"
+  },
+  {
+   "author": "grace",
+   "change_id": "cfg-0004",
+   "changed_at": "2026-07-07T03:56:00Z",
+   "key": "feature.new_onboarding_flow",
+   "new_value": "5%",
+   "note": "Gradual rollout",
+   "old_value": "0%",
+   "service": "ledger-service",
+   "source": "feature_flag"
+  },
+  {
+   "author": "farid",
+   "change_id": "cfg-0005",
+   "changed_at": "2026-07-07T11:15:00Z",
+   "key": "feature.dark_mode",
+   "new_value": "true",
+   "note": "Enable for all users",
+   "old_value": "false",
+   "service": "quotes-service",
+   "source": "feature_flag"
+  }
+ ]
+}

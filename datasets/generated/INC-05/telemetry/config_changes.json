@@ -1,0 +1,59 @@
+{
+ "config_changes": [
+  {
+   "author": "farid",
+   "change_id": "cfg-0001",
+   "changed_at": "2026-05-27T03:42:00Z",
+   "key": "cache.ttl_seconds",
+   "new_value": "90",
+   "note": "Reduce cache churn",
+   "old_value": "60",
+   "service": "orders-service",
+   "source": "runtime_config"
+  },
+  {
+   "author": "bob",
+   "change_id": "cfg-0002",
+   "changed_at": "2026-05-27T17:13:00Z",
+   "key": "http.client.timeout_ms",
+   "new_value": "2500",
+   "note": "Align client timeouts",
+   "old_value": "2000",
+   "service": "api-gateway",
+   "source": "runtime_config"
+  },
+  {
+   "author": "esha",
+   "change_id": "cfg-0003",
+   "changed_at": "2026-05-28T21:40:00Z",
+   "key": "http.client.timeout_ms",
+   "new_value": "2500",
+   "note": "Align client timeouts",
+   "old_value": "2000",
+   "service": "auth-service",
+   "source": "runtime_config"
+  },
+  {
+   "author": "farid",
+   "change_id": "cfg-0004",
+   "changed_at": "2026-05-29T08:27:00Z",
+   "key": "cache.ttl_seconds",
+   "new_value": "90",
+   "note": "Reduce cache churn",
+   "old_value": "60",
+   "service": "web-app",
+   "source": "runtime_config"
+  },
+  {
+   "author": "bob",
+   "change_id": "cfg-0005",
+   "changed_at": "2026-05-31T22:52:00Z",
+   "key": "cache.ttl_seconds",
+   "new_value": "90",
+   "note": "Reduce cache churn",
+   "old_value": "60",
+   "service": "quotes-service",
+   "source": "runtime_config"
+  }
+ ]
+}

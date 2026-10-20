@@ -1,0 +1,37 @@
+{
+ "categories": [
+  "bad_deployment"
+ ],
+ "data_gap_keywords": [],
+ "expected_status": "conclusive",
+ "incident_id": "INC-01",
+ "injected_conclusion_service": null,
+ "key_evidence": [
+  {
+   "id": "dep-0009",
+   "kind": "change"
+  },
+  {
+   "kind": "metric_series",
+   "metric": "error_rate_pct",
+   "service": "orders-service"
+  },
+  {
+   "contains": "NullPointerException in LimitPriceValidator",
+   "kind": "log_pattern",
+   "service": "orders-service"
+  }
+ ],
+ "notes": "Control case: a deploy four minutes before the onset introduces a NullPointerException.",
+ "red_herring_ids": [],
+ "red_herring_services": [],
+ "services": [
+  "orders-service"
+ ],
+ "slug": "orders-npe-deploy",
+ "tags": [
+  "control",
+  "bad_deployment"
+ ],
+ "trigger_id": "dep-0009"
+}

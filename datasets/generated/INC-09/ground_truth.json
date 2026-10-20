@@ -1,0 +1,41 @@
+{
+ "categories": [
+  "bad_deployment",
+  "data_issue"
+ ],
+ "data_gap_keywords": [],
+ "expected_status": "conclusive",
+ "incident_id": "INC-09",
+ "injected_conclusion_service": null,
+ "key_evidence": [
+  {
+   "id": "dep-0009",
+   "kind": "change"
+  },
+  {
+   "kind": "metric_series",
+   "metric": "lock_wait_ms",
+   "service": "ledger-db"
+  },
+  {
+   "contains": "waiting for lock on relation ledger_entries",
+   "kind": "log_pattern",
+   "service": "ledger-service"
+  }
+ ],
+ "notes": "A migration's backfill locks ledger_entries and slows every balance read. The symptoms match a past Redis incident, but app-cache metrics are normal.",
+ "red_herring_ids": [],
+ "red_herring_services": [
+  "app-cache"
+ ],
+ "services": [
+  "ledger-service",
+  "ledger-db"
+ ],
+ "slug": "ledger-migration-lock",
+ "tags": [
+  "misleading_history",
+  "cross_service"
+ ],
+ "trigger_id": "dep-0009"
+}

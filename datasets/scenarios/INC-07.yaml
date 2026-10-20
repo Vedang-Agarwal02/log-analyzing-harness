@@ -1,0 +1,47 @@
+id: INC-07
+slug: risk-deploy-logs-down
+seed: 107
+t0: "2026-07-08T11:04:00Z"
+reported_offset: "+11m"
+incident:
+  title: "Orders rejected: risk check unavailable"
+  severity: SEV1
+  reporter: "trading on-call"
+  summary: >-
+    Since about 11:05 UTC many order submissions are rejected with "risk check
+    unavailable", and orders-service is returning errors to customers.
+  affected_services: [orders-service]
+  customer_impact: "About 40% of orders rejected"
+changes:
+  - key: risk_release
+    type: deploy
+    service: risk-service
+    at: "-2m"
+    version: "2.11.0"
+    previous_version: "2.10.4"
+    author: bob
+    summary: "Upgrade rules engine to v5 with a new rule loader"
+metric_signals:
+  - {service: risk-service, metric: error_rate_pct, shape: step, at: "-1m", to: 45}
+  - {service: risk-service, metric: latency_p99_ms, shape: step, at: "-1m", to: 900}
+  - {service: risk-service, metric: cpu_pct, shape: spike, at: "-2m", until: "+2m", to: 92}
+  - {service: orders-service, metric: error_rate_pct, shape: step, at: "0m", to: 38}
+  - {service: orders-service, metric: risk_check_latency_ms, shape: step, at: "-1m", to: 850}
+log_signals:
+  - {service: orders-service, level: WARN, template: "Risk check failed for order {id}: upstream risk-service returned 503", at: "0m", rate_per_min: 25}
+  - {service: orders-service, level: ERROR, template: "Order {id} rejected: risk check unavailable", at: "0m", rate_per_min: 20}
+  - {service: risk-service, level: ERROR, template: "Failed to load rule set margin_v5: unknown operator BETWEEN_INCLUSIVE", at: "-1m", rate_per_min: 10}
+faults:
+  - {operation: search_logs, fault: unavailable, match: {service: risk-service}}
+ground_truth:
+  expected_status: conclusive
+  services: [risk-service]
+  categories: [bad_deployment]
+  trigger: risk_release
+  key_evidence:
+    - {kind: change, change: risk_release}
+    - {kind: metric_series, service: risk-service, metric: error_rate_pct}
+    - {kind: log_pattern, service: orders-service, contains: "upstream risk-service returned"}
+  data_gap_keywords: [risk-service, log]
+  tags: [tool_failure, cross_service]
+  notes: "The risk-service rules-engine upgrade breaks rule loading. Its logs backend is down, so the cause must be inferred from metrics, deploy timing and orders-service logs."

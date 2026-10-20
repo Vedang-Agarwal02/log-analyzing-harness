@@ -1,0 +1,103 @@
+{
+ "deployments": [
+  {
+   "author": "chen",
+   "deployment_id": "dep-0001",
+   "finished_at": "2026-03-05T16:57:00Z",
+   "previous_version": "2.20.2",
+   "service": "auth-service",
+   "started_at": "2026-03-05T16:55:00Z",
+   "status": "succeeded",
+   "summary": "Small UI copy changes",
+   "version": "2.20.3"
+  },
+  {
+   "author": "grace",
+   "deployment_id": "dep-0002",
+   "finished_at": "2026-03-05T19:48:00Z",
+   "previous_version": "1.6.3",
+   "service": "portfolio-service",
+   "started_at": "2026-03-05T19:45:00Z",
+   "status": "succeeded",
+   "summary": "Bump dependencies",
+   "version": "1.6.4"
+  },
+  {
+   "author": "alice",
+   "deployment_id": "dep-0003",
+   "finished_at": "2026-03-06T17:18:00Z",
+   "previous_version": "1.11.0",
+   "service": "web-app",
+   "started_at": "2026-03-06T17:14:00Z",
+   "status": "succeeded",
+   "summary": "Tidy up feature flag checks",
+   "version": "1.11.1"
+  },
+  {
+   "author": "bob",
+   "deployment_id": "dep-0004",
+   "finished_at": "2026-03-08T00:12:00Z",
+   "previous_version": "6.2.6",
+   "service": "web-app",
+   "started_at": "2026-03-08T00:10:00Z",
+   "status": "succeeded",
+   "summary": "Bump dependencies",
+   "version": "6.2.7"
+  },
+  {
+   "author": "dmitri",
+   "deployment_id": "dep-0005",
+   "finished_at": "2026-03-08T07:24:00Z",
+   "previous_version": "5.12.4",
+   "service": "portfolio-service",
+   "started_at": "2026-03-08T07:21:00Z",
+   "status": "succeeded",
+   "summary": "Small UI copy changes",
+   "version": "5.12.5"
+  },
+  {
+   "author": "alice",
+   "deployment_id": "dep-0006",
+   "finished_at": "2026-03-09T00:12:00Z",
+   "previous_version": "3.19.0",
+   "service": "risk-service",
+   "started_at": "2026-03-09T00:08:00Z",
+   "status": "succeeded",
+   "summary": "Refactor configuration loading",
+   "version": "3.19.1"
+  },
+  {
+   "author": "esha",
+   "deployment_id": "dep-0007",
+   "finished_at": "2026-03-09T05:29:00Z",
+   "previous_version": "4.14.0",
+   "service": "risk-service",
+   "started_at": "2026-03-09T05:27:00Z",
+   "status": "succeeded",
+   "summary": "Update translations",
+   "version": "4.14.1"
+  },
+  {
+   "author": "esha",
+   "deployment_id": "dep-0008",
+   "finished_at": "2026-03-09T10:48:00Z",
+   "previous_version": "5.2.5",
+   "service": "risk-service",
+   "started_at": "2026-03-09T10:45:00Z",
+   "status": "succeeded",
+   "summary": "Bump dependencies",
+   "version": "5.2.6"
+  },
+  {
+   "author": "alice",
+   "deployment_id": "dep-0009",
+   "finished_at": "2026-03-11T14:03:00Z",
+   "previous_version": "2.3.0",
+   "service": "notification-service",
+   "started_at": "2026-03-11T13:59:00Z",
+   "status": "succeeded",
+   "summary": "Tweak trade confirmation email templates",
+   "version": "2.3.1"
+  }
+ ]
+}

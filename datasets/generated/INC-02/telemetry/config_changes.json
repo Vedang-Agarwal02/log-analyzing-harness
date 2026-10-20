@@ -1,0 +1,70 @@
+{
+ "config_changes": [
+  {
+   "author": "esha",
+   "change_id": "cfg-0001",
+   "changed_at": "2026-03-06T13:24:00Z",
+   "key": "cache.ttl_seconds",
+   "new_value": "90",
+   "note": "Reduce cache churn",
+   "old_value": "60",
+   "service": "risk-service",
+   "source": "runtime_config"
+  },
+  {
+   "author": "chen",
+   "change_id": "cfg-0002",
+   "changed_at": "2026-03-07T11:24:00Z",
+   "key": "feature.new_onboarding_flow",
+   "new_value": "5%",
+   "note": "Gradual rollout",
+   "old_value": "0%",
+   "service": "ledger-service",
+   "source": "feature_flag"
+  },
+  {
+   "author": "grace",
+   "change_id": "cfg-0003",
+   "changed_at": "2026-03-08T00:28:00Z",
+   "key": "feature.dark_mode",
+   "new_value": "true",
+   "note": "Enable for all users",
+   "old_value": "false",
+   "service": "orders-service",
+   "source": "feature_flag"
+  },
+  {
+   "author": "alice",
+   "change_id": "cfg-0004",
+   "changed_at": "2026-03-09T08:16:00Z",
+   "key": "feature.dark_mode",
+   "new_value": "true",
+   "note": "Enable for all users",
+   "old_value": "false",
+   "service": "payments-service",
+   "source": "feature_flag"
+  },
+  {
+   "author": "dmitri",
+   "change_id": "cfg-0005",
+   "changed_at": "2026-03-11T02:59:00Z",
+   "key": "cache.ttl_seconds",
+   "new_value": "90",
+   "note": "Reduce cache churn",
+   "old_value": "60",
+   "service": "payments-service",
+   "source": "runtime_config"
+  },
+  {
+   "author": "ops-automation",
+   "change_id": "cfg-0006",
+   "changed_at": "2026-03-11T14:01:00Z",
+   "key": "db.pool.max_size",
+   "new_value": "4",
+   "note": "Right-size database connection pools per the Q1 capacity review",
+   "old_value": "40",
+   "service": "portfolio-service",
+   "source": "runtime_config"
+  }
+ ]
+}

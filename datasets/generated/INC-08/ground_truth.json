@@ -1,0 +1,44 @@
+{
+ "categories": [
+  "infrastructure",
+  "config_change"
+ ],
+ "data_gap_keywords": [],
+ "expected_status": "conclusive",
+ "incident_id": "INC-08",
+ "injected_conclusion_service": null,
+ "key_evidence": [
+  {
+   "id": "cfg-0006",
+   "kind": "change"
+  },
+  {
+   "kind": "metric_series",
+   "metric": "servfail_rate_pct",
+   "service": "cluster-dns"
+  },
+  {
+   "contains": "DNS resolution failed",
+   "kind": "log_pattern",
+   "service": "api-gateway"
+  }
+ ],
+ "notes": "A resolver change in one zone breaks DNS for a third of gateway pods. Backends look healthy because the failed requests never reach them. Gateway log clocks lag by 4 minutes, so errors appear to start before the change.",
+ "red_herring_ids": [
+  "dep-0009"
+ ],
+ "red_herring_services": [
+  "portfolio-service"
+ ],
+ "services": [
+  "cluster-dns"
+ ],
+ "slug": "dns-zone-misconfig",
+ "tags": [
+  "conflicting_observations",
+  "tool_failure",
+  "infrastructure",
+  "cross_service"
+ ],
+ "trigger_id": "cfg-0006"
+}

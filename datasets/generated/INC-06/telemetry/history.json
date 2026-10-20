@@ -1,0 +1,190 @@
+{
+ "incidents": [
+  {
+   "date": "2024-10-15",
+   "incident_id": "hist-0001",
+   "resolution": "Added idempotency keys and refunded customers",
+   "root_cause": "Retries without idempotency keys",
+   "services": [
+    "payments-service"
+   ],
+   "symptoms": "Some customers were charged twice for a deposit",
+   "title": "Duplicate deposit charges due to a retry bug"
+  },
+  {
+   "date": "2024-12-03",
+   "incident_id": "hist-0002",
+   "resolution": "Paused the migration and rewrote it as a batched backfill",
+   "root_cause": "Migration added a column and backfilled it while holding a long lock",
+   "services": [
+    "ledger-service",
+    "ledger-db"
+   ],
+   "symptoms": "Balance reads slow; lock waits on ledger-db during a schema migration backfill",
+   "title": "Ledger migration locked a table during backfill"
+  },
+  {
+   "date": "2025-01-22",
+   "incident_id": "hist-0003",
+   "resolution": "Aligned the timeouts",
+   "root_cause": "Load balancer idle timeout shorter than the gateway keep-alive timeout",
+   "services": [
+    "web-app",
+    "api-gateway"
+   ],
+   "symptoms": "Sporadic 502s for a small share of users; upstream reset before headers",
+   "title": "Sporadic 502s from a load balancer idle-timeout mismatch"
+  },
+  {
+   "date": "2025-02-17",
+   "incident_id": "hist-0004",
+   "resolution": "Rolled back risk-service",
+   "root_cause": "Rules engine upgrade failed to load a rule set",
+   "services": [
+    "risk-service",
+    "orders-service"
+   ],
+   "symptoms": "Orders rejected because risk checks failed; risk-service error rate spiked after a deploy",
+   "title": "risk-service 503s after a rules engine upgrade"
+  },
+  {
+   "date": "2025-02-26",
+   "incident_id": "hist-0005",
+   "resolution": "Fixed the NTP configuration and added clock-offset alerts",
+   "root_cause": "chrony misconfiguration on one node pool",
+   "services": [
+    "api-gateway"
+   ],
+   "symptoms": "Log timestamps from some gateway nodes were minutes off, making errors appear before their cause",
+   "title": "Clock skew on gateway nodes confused log timelines"
+  },
+  {
+   "date": "2025-03-11",
+   "incident_id": "hist-0006",
+   "resolution": "Reverted the CoreDNS change and added config validation",
+   "root_cause": "Bad forwarder address in the CoreDNS config pushed to one zone",
+   "services": [
+    "cluster-dns",
+    "api-gateway"
+   ],
+   "symptoms": "Intermittent upstream connect errors from the gateway in one availability zone; SERVFAIL answers",
+   "title": "DNS resolver misconfiguration broke service discovery in one zone"
+  },
+  {
+   "date": "2025-04-02",
+   "incident_id": "hist-0007",
+   "resolution": "Renewed the certificate and added expiry alerting",
+   "root_cause": "Public certificate expired because the auto-renewal job was failing",
+   "services": [
+    "api-gateway"
+   ],
+   "symptoms": "Browsers reported certificate errors; mobile login failed",
+   "title": "Expired public TLS certificate on the edge load balancer"
+  },
+  {
+   "date": "2025-05-19",
+   "incident_id": "hist-0008",
+   "resolution": "Rolled back and bounded the cache",
+   "root_cause": "Unbounded in-memory cache introduced in a release",
+   "services": [
+    "portfolio-service"
+   ],
+   "symptoms": "Periodic out-of-memory restarts every few hours; memory sawtooth",
+   "title": "Memory leak in portfolio-service after a caching change"
+  },
+  {
+   "date": "2025-06-12",
+   "incident_id": "hist-0009",
+   "resolution": "Rolled back the deployment and added a unit test",
+   "root_cause": "Regression in order validation code shipped in a deployment",
+   "services": [
+    "orders-service"
+   ],
+   "symptoms": "Spike of HTTP 500 on order placement minutes after a deploy; NullPointerException in a validator",
+   "title": "orders-service 500s after release: null pointer in order validation"
+  },
+  {
+   "date": "2025-07-09",
+   "incident_id": "hist-0010",
+   "resolution": "Ramped the flag down and batched the queries",
+   "root_cause": "New code path behind a feature flag issued one query per position",
+   "services": [
+    "portfolio-service",
+    "portfolio-db"
+   ],
+   "symptoms": "Database CPU saturated right after a feature flag was ramped up; queries per request jumped",
+   "title": "Feature flag rollout caused N+1 queries on portfolio-db"
+  },
+  {
+   "date": "2025-08-21",
+   "incident_id": "hist-0011",
+   "resolution": "Enabled queued deposits and escalated to the vendor",
+   "root_cause": "Incident on the third-party bank gateway (vendor side)",
+   "services": [
+    "payments-service",
+    "bank-gateway"
+   ],
+   "symptoms": "payments-service errors and timeouts calling bank-gateway; provider latency rose sharply",
+   "title": "Deposits timing out: bank-gateway latency degradation"
+  },
+  {
+   "date": "2025-09-03",
+   "incident_id": "hist-0012",
+   "resolution": "Scaled out portfolio-service and tuned the pool size",
+   "root_cause": "Traffic spike exceeded the connection pool capacity",
+   "services": [
+    "portfolio-service",
+    "portfolio-db"
+   ],
+   "symptoms": "Portfolio page timeouts; connection pool wait time high; request rate high during a market rally",
+   "title": "portfolio-service connection pool exhaustion during a traffic spike"
+  },
+  {
+   "date": "2025-09-29",
+   "incident_id": "hist-0013",
+   "resolution": "Added preStop hooks and PodDisruptionBudgets",
+   "root_cause": "Node pool upgrade evicted pods without connection draining",
+   "services": [
+    "orders-service"
+   ],
+   "symptoms": "Sporadic connection resets on order calls during cluster maintenance",
+   "title": "orders-service pod evictions during a node upgrade"
+  },
+  {
+   "date": "2025-10-14",
+   "incident_id": "hist-0014",
+   "resolution": "Rolled back notification-service",
+   "root_cause": "notification-service deploy introduced a slow template renderer",
+   "services": [
+    "notification-service",
+    "event-bus"
+   ],
+   "symptoms": "Trade confirmation emails delayed; consumer lag growing on notification-service",
+   "title": "Notification delays due to a slow consumer after a deploy"
+  },
+  {
+   "date": "2025-11-04",
+   "incident_id": "hist-0015",
+   "resolution": "Increased cache memory and tuned TTLs",
+   "root_cause": "app-cache hit its memory limit and mass evictions pushed load to the databases",
+   "services": [
+    "portfolio-service",
+    "app-cache"
+   ],
+   "symptoms": "Portfolio and orders reads slow with p99 of 4-6 seconds; cache hit ratio dropped; database load increased",
+   "title": "Redis eviction storm slowed portfolio reads"
+  },
+  {
+   "date": "2025-12-08",
+   "incident_id": "hist-0016",
+   "resolution": "Raised the autoscaler maximum and added retry budgets with jitter",
+   "root_cause": "Traffic surge beyond capacity amplified by client retries",
+   "services": [
+    "quotes-service",
+    "api-gateway"
+   ],
+   "symptoms": "Quotes slow and erroring at market open; CPU at max; autoscaler at max replicas; client retries",
+   "title": "Market-open traffic surge saturated quotes-service"
+  }
+ ]
+}

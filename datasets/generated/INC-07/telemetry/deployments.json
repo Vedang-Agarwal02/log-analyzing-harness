@@ -1,0 +1,103 @@
+{
+ "deployments": [
+  {
+   "author": "dmitri",
+   "deployment_id": "dep-0001",
+   "finished_at": "2026-07-02T06:31:00Z",
+   "previous_version": "6.8.3",
+   "service": "auth-service",
+   "started_at": "2026-07-02T06:29:00Z",
+   "status": "succeeded",
+   "summary": "Tidy up feature flag checks",
+   "version": "6.8.4"
+  },
+  {
+   "author": "farid",
+   "deployment_id": "dep-0002",
+   "finished_at": "2026-07-02T08:03:00Z",
+   "previous_version": "6.14.7",
+   "service": "payments-service",
+   "started_at": "2026-07-02T08:00:00Z",
+   "status": "succeeded",
+   "summary": "Refactor configuration loading",
+   "version": "6.14.8"
+  },
+  {
+   "author": "farid",
+   "deployment_id": "dep-0003",
+   "finished_at": "2026-07-02T11:04:00Z",
+   "previous_version": "2.16.2",
+   "service": "ledger-service",
+   "started_at": "2026-07-02T11:00:00Z",
+   "status": "succeeded",
+   "summary": "Refactor configuration loading",
+   "version": "2.16.3"
+  },
+  {
+   "author": "farid",
+   "deployment_id": "dep-0004",
+   "finished_at": "2026-07-02T23:32:00Z",
+   "previous_version": "1.20.1",
+   "service": "orders-service",
+   "started_at": "2026-07-02T23:30:00Z",
+   "status": "succeeded",
+   "summary": "Refactor configuration loading",
+   "version": "1.20.2"
+  },
+  {
+   "author": "dmitri",
+   "deployment_id": "dep-0005",
+   "finished_at": "2026-07-03T06:42:00Z",
+   "previous_version": "4.9.3",
+   "service": "portfolio-service",
+   "started_at": "2026-07-03T06:39:00Z",
+   "status": "succeeded",
+   "summary": "Tidy up feature flag checks",
+   "version": "4.9.4"
+  },
+  {
+   "author": "esha",
+   "deployment_id": "dep-0006",
+   "finished_at": "2026-07-03T20:31:00Z",
+   "previous_version": "1.7.1",
+   "service": "ledger-service",
+   "started_at": "2026-07-03T20:27:00Z",
+   "status": "succeeded",
+   "summary": "Small UI copy changes",
+   "version": "1.7.2"
+  },
+  {
+   "author": "esha",
+   "deployment_id": "dep-0007",
+   "finished_at": "2026-07-05T05:16:00Z",
+   "previous_version": "4.5.2",
+   "service": "orders-service",
+   "started_at": "2026-07-05T05:14:00Z",
+   "status": "succeeded",
+   "summary": "Update translations",
+   "version": "4.5.3"
+  },
+  {
+   "author": "chen",
+   "deployment_id": "dep-0008",
+   "finished_at": "2026-07-05T13:47:00Z",
+   "previous_version": "1.10.1",
+   "service": "payments-service",
+   "started_at": "2026-07-05T13:44:00Z",
+   "status": "succeeded",
+   "summary": "Refactor configuration loading",
+   "version": "1.10.2"
+  },
+  {
+   "author": "bob",
+   "deployment_id": "dep-0009",
+   "finished_at": "2026-07-08T11:06:00Z",
+   "previous_version": "2.10.4",
+   "service": "risk-service",
+   "started_at": "2026-07-08T11:02:00Z",
+   "status": "succeeded",
+   "summary": "Upgrade rules engine to v5 with a new rule loader",
+   "version": "2.11.0"
+  }
+ ]
+}

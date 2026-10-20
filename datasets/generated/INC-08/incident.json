@@ -1,0 +1,14 @@
+{
+ "affected_services": [
+  "api-gateway",
+  "web-app"
+ ],
+ "customer_impact": "About 8% of API requests failing",
+ "incident_id": "INC-08",
+ "initial_hypothesis": "Maybe the portfolio-service deploy at 15:08?",
+ "reported_at": "2026-07-21T15:32:00Z",
+ "reporter": "platform on-call",
+ "severity": "SEV2",
+ "summary": "Since around 15:15-15:20 UTC the API gateway returns 5xx for about 8% of requests. Some users are completely fine while others fail repeatedly. Backend services look healthy on their dashboards.",
+ "title": "Intermittent 5xx at the API gateway"
+}

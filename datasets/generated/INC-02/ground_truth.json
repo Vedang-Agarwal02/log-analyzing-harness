@@ -1,0 +1,43 @@
+{
+ "categories": [
+  "config_change"
+ ],
+ "data_gap_keywords": [],
+ "expected_status": "conclusive",
+ "incident_id": "INC-02",
+ "injected_conclusion_service": null,
+ "key_evidence": [
+  {
+   "id": "cfg-0006",
+   "kind": "change"
+  },
+  {
+   "kind": "metric_series",
+   "metric": "db_pool_wait_ms",
+   "service": "portfolio-service"
+  },
+  {
+   "contains": "waiting for connection from pool",
+   "kind": "log_pattern",
+   "service": "portfolio-service"
+  }
+ ],
+ "notes": "The reporter blames a coincident deploy of an unrelated service. Database connections drop, which contradicts a database-overload theory.",
+ "red_herring_ids": [
+  "dep-0009"
+ ],
+ "red_herring_services": [
+  "notification-service",
+  "portfolio-db"
+ ],
+ "services": [
+  "portfolio-service"
+ ],
+ "slug": "portfolio-pool-config",
+ "tags": [
+  "misleading_evidence",
+  "conflicting_observations",
+  "config_change"
+ ],
+ "trigger_id": "cfg-0006"
+}

@@ -1,0 +1,70 @@
+{
+ "config_changes": [
+  {
+   "author": "dmitri",
+   "change_id": "cfg-0001",
+   "changed_at": "2026-09-02T21:52:00Z",
+   "key": "feature.dark_mode",
+   "new_value": "true",
+   "note": "Enable for all users",
+   "old_value": "false",
+   "service": "payments-service",
+   "source": "feature_flag"
+  },
+  {
+   "author": "dmitri",
+   "change_id": "cfg-0002",
+   "changed_at": "2026-09-02T22:35:00Z",
+   "key": "cache.ttl_seconds",
+   "new_value": "90",
+   "note": "Reduce cache churn",
+   "old_value": "60",
+   "service": "quotes-service",
+   "source": "runtime_config"
+  },
+  {
+   "author": "chen",
+   "change_id": "cfg-0003",
+   "changed_at": "2026-09-03T20:38:00Z",
+   "key": "cache.ttl_seconds",
+   "new_value": "90",
+   "note": "Reduce cache churn",
+   "old_value": "60",
+   "service": "quotes-service",
+   "source": "runtime_config"
+  },
+  {
+   "author": "esha",
+   "change_id": "cfg-0004",
+   "changed_at": "2026-09-06T00:02:00Z",
+   "key": "feature.dark_mode",
+   "new_value": "true",
+   "note": "Enable for all users",
+   "old_value": "false",
+   "service": "portfolio-service",
+   "source": "feature_flag"
+  },
+  {
+   "author": "bob",
+   "change_id": "cfg-0005",
+   "changed_at": "2026-09-08T10:05:00Z",
+   "key": "cache.ttl_seconds",
+   "new_value": "90",
+   "note": "Reduce cache churn",
+   "old_value": "60",
+   "service": "api-gateway",
+   "source": "runtime_config"
+  },
+  {
+   "author": "growth-team",
+   "change_id": "cfg-0006",
+   "changed_at": "2026-09-09T12:28:00Z",
+   "key": "feature.realtime_pnl_v2",
+   "new_value": "100%",
+   "note": "Full rollout of real-time P&L",
+   "old_value": "10%",
+   "service": "portfolio-service",
+   "source": "feature_flag"
+  }
+ ]
+}

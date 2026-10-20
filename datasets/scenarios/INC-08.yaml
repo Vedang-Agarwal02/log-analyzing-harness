@@ -1,0 +1,62 @@
+id: INC-08
+slug: dns-zone-misconfig
+seed: 108
+t0: "2026-07-21T15:18:00Z"
+reported_offset: "+14m"
+incident:
+  title: "Intermittent 5xx at the API gateway"
+  severity: SEV2
+  reporter: "platform on-call"
+  summary: >-
+    Since around 15:15-15:20 UTC the API gateway returns 5xx for about 8% of requests.
+    Some users are completely fine while others fail repeatedly. Backend services look
+    healthy on their dashboards.
+  affected_services: [api-gateway, web-app]
+  customer_impact: "About 8% of API requests failing"
+  initial_hypothesis: "Maybe the portfolio-service deploy at 15:08?"
+changes:
+  - key: dns_change
+    type: config
+    service: cluster-dns
+    at: "0m"
+    config_key: "coredns.forward.upstream (zone eu-west-1b)"
+    old: "10.0.0.2"
+    new: "10.0.8.2"
+    source: infra
+    author: terraform-ci
+    note: "Point zone b resolvers at the new upstream"
+  - key: portfolio_release
+    type: deploy
+    service: portfolio-service
+    at: "-10m"
+    version: "5.1.2"
+    previous_version: "5.1.1"
+    author: esha
+    summary: "Copy changes on the holdings page"
+metric_signals:
+  - {service: api-gateway, metric: error_rate_pct, shape: step, at: "0m", to: 8}
+  - {service: cluster-dns, metric: servfail_rate_pct, shape: step, at: "0m", to: 33}
+  - {service: portfolio-service, metric: request_rate_rps, shape: multiply, at: "0m", factor: 0.68}
+  - {service: orders-service, metric: request_rate_rps, shape: multiply, at: "0m", factor: 0.68}
+  - {service: quotes-service, metric: request_rate_rps, shape: multiply, at: "0m", factor: 0.7}
+log_signals:
+  - {service: api-gateway, level: ERROR, template: "upstream connect error: DNS resolution failed for {choice:portfolio-service|orders-service|quotes-service}.internal: SERVFAIL (resolver=10.0.8.2, zone=eu-west-1b)", at: "0m", rate_per_min: 25}
+  - {service: api-gateway, level: WARN, template: "chronyd: system clock wrong by -240.3 seconds on node gw-euw1b-2; clock not synchronised", at: "-30m", count: 1}
+  - {service: cluster-dns, level: WARN, template: "plugin/forward: no healthy upstream for zone eu-west-1b (10.0.8.2:53)", at: "0m", rate_per_min: 6}
+clock_skews:
+  - {service: api-gateway, offset_seconds: -240}
+faults:
+  - {operation: get_metric, fault: partial, match: {service: api-gateway, metric: error_rate_pct}, params: {drop_ranges: [["+5m", "+22m"]]}}
+ground_truth:
+  expected_status: conclusive
+  services: [cluster-dns]
+  categories: [infrastructure, config_change]
+  trigger: dns_change
+  key_evidence:
+    - {kind: change, change: dns_change}
+    - {kind: metric_series, service: cluster-dns, metric: servfail_rate_pct}
+    - {kind: log_pattern, service: api-gateway, contains: "DNS resolution failed"}
+  red_herring_changes: [portfolio_release]
+  red_herring_services: [portfolio-service]
+  tags: [conflicting_observations, tool_failure, infrastructure, cross_service]
+  notes: "A resolver change in one zone breaks DNS for a third of gateway pods. Backends look healthy because the failed requests never reach them. Gateway log clocks lag by 4 minutes, so errors appear to start before the change."

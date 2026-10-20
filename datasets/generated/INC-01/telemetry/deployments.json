@@ -1,0 +1,103 @@
+{
+ "deployments": [
+  {
+   "author": "dmitri",
+   "deployment_id": "dep-0001",
+   "finished_at": "2026-03-03T19:23:00Z",
+   "previous_version": "2.17.0",
+   "service": "auth-service",
+   "started_at": "2026-03-03T19:21:00Z",
+   "status": "succeeded",
+   "summary": "Fix flaky retry in HTTP client",
+   "version": "2.17.1"
+  },
+  {
+   "author": "grace",
+   "deployment_id": "dep-0002",
+   "finished_at": "2026-03-04T07:02:00Z",
+   "previous_version": "3.3.8",
+   "service": "web-app",
+   "started_at": "2026-03-04T06:59:00Z",
+   "status": "succeeded",
+   "summary": "Tidy up feature flag checks",
+   "version": "3.3.9"
+  },
+  {
+   "author": "farid",
+   "deployment_id": "dep-0003",
+   "finished_at": "2026-03-04T12:25:00Z",
+   "previous_version": "5.5.1",
+   "service": "auth-service",
+   "started_at": "2026-03-04T12:21:00Z",
+   "status": "succeeded",
+   "summary": "Refactor configuration loading",
+   "version": "5.5.2"
+  },
+  {
+   "author": "grace",
+   "deployment_id": "dep-0004",
+   "finished_at": "2026-03-07T00:20:00Z",
+   "previous_version": "3.20.4",
+   "service": "api-gateway",
+   "started_at": "2026-03-07T00:18:00Z",
+   "status": "succeeded",
+   "summary": "Tidy up feature flag checks",
+   "version": "3.20.5"
+  },
+  {
+   "author": "chen",
+   "deployment_id": "dep-0005",
+   "finished_at": "2026-03-09T09:10:00Z",
+   "previous_version": "3.0.0",
+   "service": "auth-service",
+   "started_at": "2026-03-09T09:07:00Z",
+   "status": "succeeded",
+   "summary": "Tidy up feature flag checks",
+   "version": "3.0.1"
+  },
+  {
+   "author": "farid",
+   "deployment_id": "dep-0006",
+   "finished_at": "2026-03-09T09:44:00Z",
+   "previous_version": "1.19.2",
+   "service": "orders-service",
+   "started_at": "2026-03-09T09:40:00Z",
+   "status": "succeeded",
+   "summary": "Fix flaky retry in HTTP client",
+   "version": "1.19.3"
+  },
+  {
+   "author": "dmitri",
+   "deployment_id": "dep-0007",
+   "finished_at": "2026-03-09T16:21:00Z",
+   "previous_version": "3.0.5",
+   "service": "payments-service",
+   "started_at": "2026-03-09T16:19:00Z",
+   "status": "succeeded",
+   "summary": "Bump dependencies",
+   "version": "3.0.6"
+  },
+  {
+   "author": "grace",
+   "deployment_id": "dep-0008",
+   "finished_at": "2026-03-10T04:14:00Z",
+   "previous_version": "3.0.1",
+   "service": "ledger-service",
+   "started_at": "2026-03-10T04:11:00Z",
+   "status": "succeeded",
+   "summary": "Update translations",
+   "version": "3.0.2"
+  },
+  {
+   "author": "chen",
+   "deployment_id": "dep-0009",
+   "finished_at": "2026-03-10T10:12:00Z",
+   "previous_version": "4.17.3",
+   "service": "orders-service",
+   "started_at": "2026-03-10T10:08:00Z",
+   "status": "succeeded",
+   "summary": "Refactor limit-price validation; switch to the new quote client",
+   "version": "4.18.0"
+  }
+ ]
+}

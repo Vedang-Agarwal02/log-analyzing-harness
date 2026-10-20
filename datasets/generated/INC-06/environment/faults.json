@@ -1,0 +1,15 @@
+{
+ "faults": [
+  {
+   "fault": "truncated",
+   "first_n": null,
+   "match": {
+    "service": "quotes-service"
+   },
+   "operation": "search_logs",
+   "params": {
+    "max_items": 200
+   }
+  }
+ ]
+}

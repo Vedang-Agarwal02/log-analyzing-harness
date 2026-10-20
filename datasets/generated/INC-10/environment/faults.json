@@ -1,0 +1,27 @@
+{
+ "faults": [
+  {
+   "fault": "unavailable",
+   "first_n": null,
+   "match": {},
+   "operation": "list_deployments",
+   "params": {}
+  },
+  {
+   "fault": "partial",
+   "first_n": null,
+   "match": {
+    "service": "web-app"
+   },
+   "operation": "search_logs",
+   "params": {
+    "drop_ranges": [
+     [
+      "2026-08-19T19:05:00Z",
+      "2026-08-19T19:20:00Z"
+     ]
+    ]
+   }
+  }
+ ]
+}

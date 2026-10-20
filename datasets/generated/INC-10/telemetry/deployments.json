@@ -1,0 +1,92 @@
+{
+ "deployments": [
+  {
+   "author": "alice",
+   "deployment_id": "dep-0001",
+   "finished_at": "2026-08-13T13:59:00Z",
+   "previous_version": "6.18.0",
+   "service": "notification-service",
+   "started_at": "2026-08-13T13:57:00Z",
+   "status": "succeeded",
+   "summary": "Refactor configuration loading",
+   "version": "6.18.1"
+  },
+  {
+   "author": "grace",
+   "deployment_id": "dep-0002",
+   "finished_at": "2026-08-14T03:36:00Z",
+   "previous_version": "5.6.8",
+   "service": "ledger-service",
+   "started_at": "2026-08-14T03:33:00Z",
+   "status": "succeeded",
+   "summary": "Tidy up feature flag checks",
+   "version": "5.6.9"
+  },
+  {
+   "author": "alice",
+   "deployment_id": "dep-0003",
+   "finished_at": "2026-08-14T18:49:00Z",
+   "previous_version": "5.1.6",
+   "service": "notification-service",
+   "started_at": "2026-08-14T18:45:00Z",
+   "status": "succeeded",
+   "summary": "Bump dependencies",
+   "version": "5.1.7"
+  },
+  {
+   "author": "farid",
+   "deployment_id": "dep-0004",
+   "finished_at": "2026-08-16T00:26:00Z",
+   "previous_version": "4.9.0",
+   "service": "orders-service",
+   "started_at": "2026-08-16T00:24:00Z",
+   "status": "succeeded",
+   "summary": "Bump dependencies",
+   "version": "4.9.1"
+  },
+  {
+   "author": "bob",
+   "deployment_id": "dep-0005",
+   "finished_at": "2026-08-18T06:46:00Z",
+   "previous_version": "3.5.4",
+   "service": "ledger-service",
+   "started_at": "2026-08-18T06:43:00Z",
+   "status": "succeeded",
+   "summary": "Add metrics for cache usage",
+   "version": "3.5.5"
+  },
+  {
+   "author": "bob",
+   "deployment_id": "dep-0006",
+   "finished_at": "2026-08-19T00:22:00Z",
+   "previous_version": "5.9.5",
+   "service": "orders-service",
+   "started_at": "2026-08-19T00:18:00Z",
+   "status": "succeeded",
+   "summary": "Refactor configuration loading",
+   "version": "5.9.6"
+  },
+  {
+   "author": "bob",
+   "deployment_id": "dep-0007",
+   "finished_at": "2026-08-19T13:40:00Z",
+   "previous_version": "4.9.4",
+   "service": "ledger-service",
+   "started_at": "2026-08-19T13:38:00Z",
+   "status": "succeeded",
+   "summary": "Update translations",
+   "version": "4.9.5"
+  },
+  {
+   "author": "chen",
+   "deployment_id": "dep-0008",
+   "finished_at": "2026-08-19T13:47:00Z",
+   "previous_version": "6.18.7",
+   "service": "api-gateway",
+   "started_at": "2026-08-19T13:44:00Z",
+   "status": "succeeded",
+   "summary": "Add metrics for cache usage",
+   "version": "6.18.8"
+  }
+ ]
+}

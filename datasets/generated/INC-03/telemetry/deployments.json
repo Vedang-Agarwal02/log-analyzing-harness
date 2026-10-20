@@ -1,0 +1,103 @@
+{
+ "deployments": [
+  {
+   "author": "alice",
+   "deployment_id": "dep-0001",
+   "finished_at": "2026-03-31T20:08:00Z",
+   "previous_version": "1.4.0",
+   "service": "payments-service",
+   "started_at": "2026-03-31T20:06:00Z",
+   "status": "succeeded",
+   "summary": "Small UI copy changes",
+   "version": "1.4.1"
+  },
+  {
+   "author": "bob",
+   "deployment_id": "dep-0002",
+   "finished_at": "2026-04-02T11:38:00Z",
+   "previous_version": "3.12.2",
+   "service": "payments-service",
+   "started_at": "2026-04-02T11:35:00Z",
+   "status": "succeeded",
+   "summary": "Update translations",
+   "version": "3.12.3"
+  },
+  {
+   "author": "chen",
+   "deployment_id": "dep-0003",
+   "finished_at": "2026-04-04T13:27:00Z",
+   "previous_version": "1.16.8",
+   "service": "notification-service",
+   "started_at": "2026-04-04T13:23:00Z",
+   "status": "succeeded",
+   "summary": "Bump dependencies",
+   "version": "1.16.9"
+  },
+  {
+   "author": "chen",
+   "deployment_id": "dep-0004",
+   "finished_at": "2026-04-05T00:55:00Z",
+   "previous_version": "6.0.3",
+   "service": "orders-service",
+   "started_at": "2026-04-05T00:53:00Z",
+   "status": "succeeded",
+   "summary": "Add metrics for cache usage",
+   "version": "6.0.4"
+  },
+  {
+   "author": "farid",
+   "deployment_id": "dep-0005",
+   "finished_at": "2026-04-05T02:18:00Z",
+   "previous_version": "2.6.4",
+   "service": "quotes-service",
+   "started_at": "2026-04-05T02:15:00Z",
+   "status": "succeeded",
+   "summary": "Update translations",
+   "version": "2.6.5"
+  },
+  {
+   "author": "grace",
+   "deployment_id": "dep-0006",
+   "finished_at": "2026-04-05T14:58:00Z",
+   "previous_version": "2.0.7",
+   "service": "api-gateway",
+   "started_at": "2026-04-05T14:54:00Z",
+   "status": "succeeded",
+   "summary": "Add metrics for cache usage",
+   "version": "2.0.8"
+  },
+  {
+   "author": "dmitri",
+   "deployment_id": "dep-0007",
+   "finished_at": "2026-04-06T07:23:00Z",
+   "previous_version": "3.14.4",
+   "service": "risk-service",
+   "started_at": "2026-04-06T07:21:00Z",
+   "status": "succeeded",
+   "summary": "Update translations",
+   "version": "3.14.5"
+  },
+  {
+   "author": "esha",
+   "deployment_id": "dep-0008",
+   "finished_at": "2026-04-06T19:40:00Z",
+   "previous_version": "5.3.6",
+   "service": "notification-service",
+   "started_at": "2026-04-06T19:37:00Z",
+   "status": "succeeded",
+   "summary": "Small UI copy changes",
+   "version": "5.3.7"
+  },
+  {
+   "author": "farid",
+   "deployment_id": "dep-0009",
+   "finished_at": "2026-04-07T07:19:00Z",
+   "previous_version": "7.1.4",
+   "service": "payments-service",
+   "started_at": "2026-04-07T07:15:00Z",
+   "status": "succeeded",
+   "summary": "Add idempotency keys to withdrawal requests",
+   "version": "7.2.0"
+  }
+ ]
+}

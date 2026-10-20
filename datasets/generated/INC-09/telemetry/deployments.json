@@ -1,0 +1,103 @@
+{
+ "deployments": [
+  {
+   "author": "chen",
+   "deployment_id": "dep-0001",
+   "finished_at": "2026-07-28T02:34:00Z",
+   "previous_version": "2.4.3",
+   "service": "portfolio-service",
+   "started_at": "2026-07-28T02:32:00Z",
+   "status": "succeeded",
+   "summary": "Update translations",
+   "version": "2.4.4"
+  },
+  {
+   "author": "grace",
+   "deployment_id": "dep-0002",
+   "finished_at": "2026-07-31T01:51:00Z",
+   "previous_version": "5.16.4",
+   "service": "web-app",
+   "started_at": "2026-07-31T01:48:00Z",
+   "status": "succeeded",
+   "summary": "Improve request logging",
+   "version": "5.16.5"
+  },
+  {
+   "author": "chen",
+   "deployment_id": "dep-0003",
+   "finished_at": "2026-07-31T18:15:00Z",
+   "previous_version": "1.11.8",
+   "service": "orders-service",
+   "started_at": "2026-07-31T18:11:00Z",
+   "status": "succeeded",
+   "summary": "Refactor configuration loading",
+   "version": "1.11.9"
+  },
+  {
+   "author": "esha",
+   "deployment_id": "dep-0004",
+   "finished_at": "2026-08-02T00:23:00Z",
+   "previous_version": "1.16.8",
+   "service": "portfolio-service",
+   "started_at": "2026-08-02T00:21:00Z",
+   "status": "succeeded",
+   "summary": "Update translations",
+   "version": "1.16.9"
+  },
+  {
+   "author": "chen",
+   "deployment_id": "dep-0005",
+   "finished_at": "2026-08-02T05:25:00Z",
+   "previous_version": "4.1.2",
+   "service": "auth-service",
+   "started_at": "2026-08-02T05:22:00Z",
+   "status": "succeeded",
+   "summary": "Tidy up feature flag checks",
+   "version": "4.1.3"
+  },
+  {
+   "author": "bob",
+   "deployment_id": "dep-0006",
+   "finished_at": "2026-08-03T04:55:00Z",
+   "previous_version": "5.19.0",
+   "service": "payments-service",
+   "started_at": "2026-08-03T04:51:00Z",
+   "status": "succeeded",
+   "summary": "Fix flaky retry in HTTP client",
+   "version": "5.19.1"
+  },
+  {
+   "author": "farid",
+   "deployment_id": "dep-0007",
+   "finished_at": "2026-08-03T14:58:00Z",
+   "previous_version": "5.18.5",
+   "service": "payments-service",
+   "started_at": "2026-08-03T14:56:00Z",
+   "status": "succeeded",
+   "summary": "Add metrics for cache usage",
+   "version": "5.18.6"
+  },
+  {
+   "author": "bob",
+   "deployment_id": "dep-0008",
+   "finished_at": "2026-08-03T19:11:00Z",
+   "previous_version": "2.11.0",
+   "service": "risk-service",
+   "started_at": "2026-08-03T19:08:00Z",
+   "status": "succeeded",
+   "summary": "Update translations",
+   "version": "2.11.1"
+  },
+  {
+   "author": "chen",
+   "deployment_id": "dep-0009",
+   "finished_at": "2026-08-04T02:09:00Z",
+   "previous_version": "5.9.3",
+   "service": "ledger-service",
+   "started_at": "2026-08-04T02:05:00Z",
+   "status": "succeeded",
+   "summary": "Add settlement_date to ledger_entries (migration 0142, includes backfill)",
+   "version": "6.0.0"
+  }
+ ]
+}

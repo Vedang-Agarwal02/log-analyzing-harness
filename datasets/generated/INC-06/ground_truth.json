@@ -1,0 +1,47 @@
+{
+ "categories": [
+  "traffic_surge",
+  "resource_exhaustion"
+ ],
+ "data_gap_keywords": [],
+ "expected_status": "conclusive",
+ "incident_id": "INC-06",
+ "injected_conclusion_service": null,
+ "key_evidence": [
+  {
+   "kind": "metric_series",
+   "metric": "request_rate_rps",
+   "service": "api-gateway"
+  },
+  {
+   "kind": "metric_series",
+   "metric": "cpu_pct",
+   "service": "quotes-service"
+  },
+  {
+   "contains": "at max replicas",
+   "kind": "log_pattern",
+   "service": "quotes-service"
+  },
+  {
+   "contains": "Retrying quotes-service call",
+   "kind": "log_pattern",
+   "service": "orders-service"
+  }
+ ],
+ "notes": "A market-event traffic surge, amplified by client retries, saturates quotes-service. A feature-flag change 16 minutes earlier only affects after-hours quotes.",
+ "red_herring_ids": [
+  "cfg-0006"
+ ],
+ "red_herring_services": [],
+ "services": [
+  "quotes-service"
+ ],
+ "slug": "market-open-surge",
+ "tags": [
+  "misleading_evidence",
+  "traffic",
+  "tool_failure"
+ ],
+ "trigger_id": null
+}

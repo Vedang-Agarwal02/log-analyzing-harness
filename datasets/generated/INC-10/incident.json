@@ -1,0 +1,14 @@
+{
+ "affected_services": [
+  "web-app",
+  "api-gateway"
+ ],
+ "customer_impact": "A handful of users affected",
+ "incident_id": "INC-10",
+ "initial_hypothesis": null,
+ "reported_at": "2026-08-19T19:45:00Z",
+ "reporter": "customer support",
+ "severity": "SEV3",
+ "summary": "Support received 14 tickets between 19:00 and 19:30 UTC from users who saw a 502 error when submitting orders or loading the portfolio page. Most users are not affected and retries usually work.",
+ "title": "Sporadic 502s for a few users"
+}

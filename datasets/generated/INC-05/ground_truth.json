@@ -1,0 +1,39 @@
+{
+ "categories": [
+  "infrastructure"
+ ],
+ "data_gap_keywords": [],
+ "expected_status": "conclusive",
+ "incident_id": "INC-05",
+ "injected_conclusion_service": null,
+ "key_evidence": [
+  {
+   "contains": "certificate has expired",
+   "kind": "log_pattern",
+   "service": "api-gateway"
+  },
+  {
+   "kind": "metric_series",
+   "metric": "request_rate_rps",
+   "service": "auth-service"
+  },
+  {
+   "contains": "automatic renewal failed",
+   "kind": "log_pattern",
+   "service": "auth-service"
+  }
+ ],
+ "notes": "auth-service's server certificate expires at midnight. No change is involved. Requests reaching auth-service drop, which contradicts the 'overloaded' theory.",
+ "red_herring_ids": [],
+ "red_herring_services": [],
+ "services": [
+  "auth-service"
+ ],
+ "slug": "auth-cert-expiry",
+ "tags": [
+  "conflicting_observations",
+  "no_change",
+  "cross_service"
+ ],
+ "trigger_id": null
+}

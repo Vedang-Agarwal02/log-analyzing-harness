@@ -1,0 +1,14 @@
+{
+ "affected_services": [
+  "api-gateway",
+  "orders-service"
+ ],
+ "customer_impact": "About 35% of order submissions failing",
+ "incident_id": "INC-01",
+ "initial_hypothesis": null,
+ "reported_at": "2026-03-10T10:21:00Z",
+ "reporter": "on-call engineer (trading)",
+ "severity": "SEV1",
+ "summary": "Since about 10:12 UTC roughly a third of order placement requests (POST /api/v1/orders) fail with HTTP 500. Customers see \"Something went wrong\" when submitting orders. Other pages appear to work.",
+ "title": "Order placement failing with HTTP 500"
+}

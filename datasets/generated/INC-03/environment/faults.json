@@ -1,0 +1,13 @@
+{
+ "faults": [
+  {
+   "fault": "rate_limited",
+   "first_n": 2,
+   "match": {},
+   "operation": "list_deployments",
+   "params": {
+    "retry_after_s": 0.2
+   }
+  }
+ ]
+}

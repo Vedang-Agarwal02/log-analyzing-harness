@@ -1,0 +1,13 @@
+{
+ "affected_services": [
+  "orders-service"
+ ],
+ "customer_impact": "About 40% of orders rejected",
+ "incident_id": "INC-07",
+ "initial_hypothesis": null,
+ "reported_at": "2026-07-08T11:15:00Z",
+ "reporter": "trading on-call",
+ "severity": "SEV1",
+ "summary": "Since about 11:05 UTC many order submissions are rejected with \"risk check unavailable\", and orders-service is returning errors to customers.",
+ "title": "Orders rejected: risk check unavailable"
+}

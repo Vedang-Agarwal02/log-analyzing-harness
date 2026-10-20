@@ -1,0 +1,103 @@
+{
+ "deployments": [
+  {
+   "author": "farid",
+   "deployment_id": "dep-0001",
+   "finished_at": "2026-09-16T09:08:00Z",
+   "previous_version": "4.2.8",
+   "service": "portfolio-service",
+   "started_at": "2026-09-16T09:06:00Z",
+   "status": "succeeded",
+   "summary": "Fix flaky retry in HTTP client",
+   "version": "4.2.9"
+  },
+  {
+   "author": "esha",
+   "deployment_id": "dep-0002",
+   "finished_at": "2026-09-18T17:14:00Z",
+   "previous_version": "1.2.3",
+   "service": "portfolio-service",
+   "started_at": "2026-09-18T17:11:00Z",
+   "status": "succeeded",
+   "summary": "Update translations",
+   "version": "1.2.4"
+  },
+  {
+   "author": "chen",
+   "deployment_id": "dep-0003",
+   "finished_at": "2026-09-19T13:43:00Z",
+   "previous_version": "2.4.6",
+   "service": "web-app",
+   "started_at": "2026-09-19T13:39:00Z",
+   "status": "succeeded",
+   "summary": "Improve request logging",
+   "version": "2.4.7"
+  },
+  {
+   "author": "dmitri",
+   "deployment_id": "dep-0004",
+   "finished_at": "2026-09-20T05:34:00Z",
+   "previous_version": "4.13.2",
+   "service": "notification-service",
+   "started_at": "2026-09-20T05:32:00Z",
+   "status": "succeeded",
+   "summary": "Update translations",
+   "version": "4.13.3"
+  },
+  {
+   "author": "grace",
+   "deployment_id": "dep-0005",
+   "finished_at": "2026-09-20T13:05:00Z",
+   "previous_version": "4.18.0",
+   "service": "ledger-service",
+   "started_at": "2026-09-20T13:02:00Z",
+   "status": "succeeded",
+   "summary": "Tidy up feature flag checks",
+   "version": "4.18.1"
+  },
+  {
+   "author": "dmitri",
+   "deployment_id": "dep-0006",
+   "finished_at": "2026-09-20T18:33:00Z",
+   "previous_version": "2.16.4",
+   "service": "payments-service",
+   "started_at": "2026-09-20T18:29:00Z",
+   "status": "succeeded",
+   "summary": "Improve request logging",
+   "version": "2.16.5"
+  },
+  {
+   "author": "bob",
+   "deployment_id": "dep-0007",
+   "finished_at": "2026-09-21T07:15:00Z",
+   "previous_version": "4.11.0",
+   "service": "risk-service",
+   "started_at": "2026-09-21T07:13:00Z",
+   "status": "succeeded",
+   "summary": "Fix flaky retry in HTTP client",
+   "version": "4.11.1"
+  },
+  {
+   "author": "dmitri",
+   "deployment_id": "dep-0008",
+   "finished_at": "2026-09-22T16:09:00Z",
+   "previous_version": "2.14.3",
+   "service": "risk-service",
+   "started_at": "2026-09-22T16:06:00Z",
+   "status": "succeeded",
+   "summary": "Add metrics for cache usage",
+   "version": "2.14.4"
+  },
+  {
+   "author": "alice",
+   "deployment_id": "dep-0009",
+   "finished_at": "2026-09-23T06:44:00Z",
+   "previous_version": "1.13.2",
+   "service": "notification-service",
+   "started_at": "2026-09-23T06:40:00Z",
+   "status": "succeeded",
+   "summary": "Batch email sends",
+   "version": "1.14.0"
+  }
+ ]
+}

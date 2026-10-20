@@ -1,0 +1,15 @@
+{
+ "affected_services": [
+  "quotes-service",
+  "orders-service",
+  "api-gateway"
+ ],
+ "customer_impact": "Slow quotes; around 18% errors on orders and quotes",
+ "incident_id": "INC-06",
+ "initial_hypothesis": null,
+ "reported_at": "2026-06-17T13:39:00Z",
+ "reporter": "trading on-call",
+ "severity": "SEV2",
+ "summary": "Right after market open (13:30 UTC) quotes and order placement became slow, and about 18% of requests error out. A major macro announcement was scheduled for today.",
+ "title": "Orders and quotes slow at market open"
+}

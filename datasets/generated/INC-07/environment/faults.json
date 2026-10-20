@@ -1,0 +1,13 @@
+{
+ "faults": [
+  {
+   "fault": "unavailable",
+   "first_n": null,
+   "match": {
+    "service": "risk-service"
+   },
+   "operation": "search_logs",
+   "params": {}
+  }
+ ]
+}

@@ -1,0 +1,14 @@
+{
+ "affected_services": [
+  "web-app",
+  "portfolio-service"
+ ],
+ "customer_impact": "About 30% of portfolio page loads fail or take more than 8 seconds",
+ "incident_id": "INC-02",
+ "initial_hypothesis": "Probably the notification-service deploy that went out right before 14:00.",
+ "reported_at": "2026-03-11T14:15:00Z",
+ "reporter": "support escalation",
+ "severity": "SEV2",
+ "summary": "Since roughly 14:00 UTC many customers report that the portfolio page spins and then times out. The error rate on the portfolio page is elevated.",
+ "title": "Portfolio page timing out"
+}

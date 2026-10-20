@@ -1,0 +1,14 @@
+{
+ "affected_services": [
+  "portfolio-service",
+  "orders-service"
+ ],
+ "customer_impact": "Slow page loads; some order submissions time out",
+ "incident_id": "INC-09",
+ "initial_hypothesis": "This looks exactly like the Redis eviction storm from last November, so probably app-cache again.",
+ "reported_at": "2026-08-04T02:28:00Z",
+ "reporter": "night on-call",
+ "severity": "SEV2",
+ "summary": "Since about 02:10 UTC portfolio pages and order-entry checks are slow, with p99 of 4-6 seconds. The cache hit ratio on portfolio-service dropped a little.",
+ "title": "Slow portfolio and order reads"
+}

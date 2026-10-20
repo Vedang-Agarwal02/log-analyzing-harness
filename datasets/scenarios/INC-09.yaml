@@ -1,0 +1,51 @@
+id: INC-09
+slug: ledger-migration-lock
+seed: 109
+t0: "2026-08-04T02:10:00Z"
+reported_offset: "+18m"
+incident:
+  title: "Slow portfolio and order reads"
+  severity: SEV2
+  reporter: "night on-call"
+  summary: >-
+    Since about 02:10 UTC portfolio pages and order-entry checks are slow, with p99 of
+    4-6 seconds. The cache hit ratio on portfolio-service dropped a little.
+  affected_services: [portfolio-service, orders-service]
+  customer_impact: "Slow page loads; some order submissions time out"
+  initial_hypothesis: "This looks exactly like the Redis eviction storm from last November, so probably app-cache again."
+changes:
+  - key: ledger_release
+    type: deploy
+    service: ledger-service
+    at: "-5m"
+    version: "6.0.0"
+    previous_version: "5.9.3"
+    author: chen
+    summary: "Add settlement_date to ledger_entries (migration 0142, includes backfill)"
+metric_signals:
+  - {service: ledger-db, metric: lock_wait_ms, shape: step, at: "-4m", to: 3200}
+  - {service: ledger-db, metric: active_connections, shape: step, at: "-4m", to: 140}
+  - {service: ledger-db, metric: cpu_pct, shape: step, at: "-4m", to: 68}
+  - {service: ledger-service, metric: latency_p99_ms, shape: step, at: "-4m", to: 5200}
+  - {service: ledger-service, metric: db_query_latency_ms, shape: step, at: "-4m", to: 2900}
+  - {service: portfolio-service, metric: latency_p99_ms, shape: step, at: "-3m", to: 5800}
+  - {service: orders-service, metric: latency_p99_ms, shape: step, at: "-3m", to: 4100}
+  - {service: portfolio-service, metric: cache_hit_ratio, shape: step, at: "-2m", to: 0.85}
+log_signals:
+  - {service: ledger-service, level: INFO, template: "Migration 0142_add_settlement_date: backfilling ledger_entries batch {n} ({n} rows)", at: "-5m", rate_per_min: 2}
+  - {service: ledger-service, level: WARN, template: "Query exceeded 3000ms: SELECT balance FROM ledger_entries WHERE account_id = {n} (waiting for lock on relation ledger_entries)", at: "-4m", rate_per_min: 25}
+  - {service: ledger-db, level: WARN, template: "process {n} still waiting for AccessExclusiveLock on relation ledger_entries after {int:1000-5000}.{int:100-999} ms", at: "-4m", rate_per_min: 10}
+  - {service: portfolio-service, level: WARN, template: "Slow upstream ledger-service call took {int:3000-6000}ms (GET /balances)", at: "-3m", rate_per_min: 15}
+  - {service: orders-service, level: WARN, template: "Buying-power check slow: ledger-service responded in {int:3000-5000}ms", at: "-3m", rate_per_min: 10}
+ground_truth:
+  expected_status: conclusive
+  services: [ledger-service, ledger-db]
+  categories: [bad_deployment, data_issue]
+  trigger: ledger_release
+  key_evidence:
+    - {kind: change, change: ledger_release}
+    - {kind: metric_series, service: ledger-db, metric: lock_wait_ms}
+    - {kind: log_pattern, service: ledger-service, contains: "waiting for lock on relation ledger_entries"}
+  red_herring_services: [app-cache]
+  tags: [misleading_history, cross_service]
+  notes: "A migration's backfill locks ledger_entries and slows every balance read. The symptoms match a past Redis incident, but app-cache metrics are normal."

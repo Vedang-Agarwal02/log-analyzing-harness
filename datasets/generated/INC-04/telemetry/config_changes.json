@@ -1,0 +1,59 @@
+{
+ "config_changes": [
+  {
+   "author": "grace",
+   "change_id": "cfg-0001",
+   "changed_at": "2026-05-07T16:39:00Z",
+   "key": "log.level",
+   "new_value": "DEBUG",
+   "note": "Temporary debug logging",
+   "old_value": "INFO",
+   "service": "web-app",
+   "source": "runtime_config"
+  },
+  {
+   "author": "esha",
+   "change_id": "cfg-0002",
+   "changed_at": "2026-05-07T23:34:00Z",
+   "key": "feature.dark_mode",
+   "new_value": "true",
+   "note": "Enable for all users",
+   "old_value": "false",
+   "service": "quotes-service",
+   "source": "feature_flag"
+  },
+  {
+   "author": "grace",
+   "change_id": "cfg-0003",
+   "changed_at": "2026-05-10T21:18:00Z",
+   "key": "http.client.timeout_ms",
+   "new_value": "2500",
+   "note": "Align client timeouts",
+   "old_value": "2000",
+   "service": "notification-service",
+   "source": "runtime_config"
+  },
+  {
+   "author": "dmitri",
+   "change_id": "cfg-0004",
+   "changed_at": "2026-05-11T19:06:00Z",
+   "key": "feature.dark_mode",
+   "new_value": "true",
+   "note": "Enable for all users",
+   "old_value": "false",
+   "service": "orders-service",
+   "source": "feature_flag"
+  },
+  {
+   "author": "bob",
+   "change_id": "cfg-0005",
+   "changed_at": "2026-05-12T13:11:00Z",
+   "key": "feature.new_onboarding_flow",
+   "new_value": "5%",
+   "note": "Gradual rollout",
+   "old_value": "0%",
+   "service": "auth-service",
+   "source": "feature_flag"
+  }
+ ]
+}

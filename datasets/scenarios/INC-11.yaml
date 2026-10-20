@@ -1,0 +1,61 @@
+id: INC-11
+slug: pnl-flag-db-overload
+seed: 111
+t0: "2026-09-09T12:30:00Z"
+reported_offset: "+13m"
+incident:
+  title: "orders-db CPU at 98% and orders-service slow"
+  severity: SEV2
+  reporter: "DBA on-call"
+  summary: >-
+    orders-db CPU jumped to about 98% at 12:29 UTC and the orders-service p99 latency is
+    around 3 seconds. Some order submissions time out.
+  affected_services: [orders-db, orders-service]
+  customer_impact: "Slow order entry; about 6% of orders time out"
+  initial_hypothesis: "orders-service deployed v4.19.0 yesterday afternoon, so maybe a bad query?"
+changes:
+  - key: pnl_flag
+    type: config
+    service: portfolio-service
+    at: "-2m"
+    config_key: feature.realtime_pnl_v2
+    old: "10%"
+    new: "100%"
+    source: feature_flag
+    author: growth-team
+    note: "Full rollout of real-time P&L"
+  - key: orders_release_y
+    type: deploy
+    service: orders-service
+    at: "-20h30m"
+    version: "4.19.0"
+    previous_version: "4.18.1"
+    author: chen
+    summary: "Order history pagination"
+metric_signals:
+  - {service: orders-db, metric: cpu_pct, shape: step, at: "-1m", to: 98}
+  - {service: orders-db, metric: queries_per_sec, shape: multiply, at: "-1m", factor: 7.5}
+  - {service: orders-db, metric: active_connections, shape: step, at: "-1m", to: 180}
+  - {service: portfolio-service, metric: db_queries_per_request, shape: step, at: "-2m", to: 41}
+  - {service: orders-service, metric: latency_p99_ms, shape: step, at: "0m", to: 3100}
+  - {service: orders-service, metric: error_rate_pct, shape: step, at: "+1m", to: 6}
+  - {service: portfolio-service, metric: latency_p99_ms, shape: step, at: "-1m", to: 1400}
+log_signals:
+  - {service: orders-db, level: INFO, template: "duration: {int:200-900} ms statement: SELECT * FROM fills WHERE account_id = {n} AND symbol = $2 app=portfolio-service", at: "-1m", rate_per_min: 40}
+  - {service: portfolio-service, level: INFO, template: "Feature flag realtime_pnl_v2 now enabled for 100% of users", at: "-2m", count: 1}
+  - {service: orders-service, level: WARN, template: "Timeout acquiring orders-db connection after {int:2000-3000}ms", at: "+1m", rate_per_min: 8}
+faults:
+  - {operation: list_config_changes, fault: timeout, first_n: 4}
+ground_truth:
+  expected_status: conclusive
+  services: [portfolio-service]
+  categories: [config_change]
+  trigger: pnl_flag
+  key_evidence:
+    - {kind: change, change: pnl_flag}
+    - {kind: metric_series, service: portfolio-service, metric: db_queries_per_request}
+    - {kind: log_pattern, service: orders-db, contains: "SELECT * FROM fills"}
+  red_herring_changes: [orders_release_y]
+  red_herring_services: [orders-service, orders-db]
+  tags: [misleading_evidence, cross_service, tool_failure]
+  notes: "A portfolio-service feature-flag ramp issues N+1 queries against orders-db. The alerting service is a victim, and the orders-service deploy the day before is a red herring."

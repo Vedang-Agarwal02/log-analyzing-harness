@@ -1,0 +1,103 @@
+{
+ "deployments": [
+  {
+   "author": "bob",
+   "deployment_id": "dep-0001",
+   "finished_at": "2026-09-02T18:18:00Z",
+   "previous_version": "6.11.4",
+   "service": "notification-service",
+   "started_at": "2026-09-02T18:16:00Z",
+   "status": "succeeded",
+   "summary": "Fix flaky retry in HTTP client",
+   "version": "6.11.5"
+  },
+  {
+   "author": "farid",
+   "deployment_id": "dep-0002",
+   "finished_at": "2026-09-03T09:15:00Z",
+   "previous_version": "1.12.5",
+   "service": "ledger-service",
+   "started_at": "2026-09-03T09:12:00Z",
+   "status": "succeeded",
+   "summary": "Small UI copy changes",
+   "version": "1.12.6"
+  },
+  {
+   "author": "alice",
+   "deployment_id": "dep-0003",
+   "finished_at": "2026-09-05T20:54:00Z",
+   "previous_version": "4.6.2",
+   "service": "ledger-service",
+   "started_at": "2026-09-05T20:50:00Z",
+   "status": "succeeded",
+   "summary": "Small UI copy changes",
+   "version": "4.6.3"
+  },
+  {
+   "author": "dmitri",
+   "deployment_id": "dep-0004",
+   "finished_at": "2026-09-05T23:19:00Z",
+   "previous_version": "6.3.1",
+   "service": "payments-service",
+   "started_at": "2026-09-05T23:17:00Z",
+   "status": "succeeded",
+   "summary": "Refactor configuration loading",
+   "version": "6.3.2"
+  },
+  {
+   "author": "dmitri",
+   "deployment_id": "dep-0005",
+   "finished_at": "2026-09-06T07:11:00Z",
+   "previous_version": "3.14.2",
+   "service": "orders-service",
+   "started_at": "2026-09-06T07:08:00Z",
+   "status": "succeeded",
+   "summary": "Fix flaky retry in HTTP client",
+   "version": "3.14.3"
+  },
+  {
+   "author": "alice",
+   "deployment_id": "dep-0006",
+   "finished_at": "2026-09-06T11:13:00Z",
+   "previous_version": "4.1.0",
+   "service": "auth-service",
+   "started_at": "2026-09-06T11:09:00Z",
+   "status": "succeeded",
+   "summary": "Bump dependencies",
+   "version": "4.1.1"
+  },
+  {
+   "author": "chen",
+   "deployment_id": "dep-0007",
+   "finished_at": "2026-09-08T06:12:00Z",
+   "previous_version": "1.0.0",
+   "service": "risk-service",
+   "started_at": "2026-09-08T06:10:00Z",
+   "status": "succeeded",
+   "summary": "Add metrics for cache usage",
+   "version": "1.0.1"
+  },
+  {
+   "author": "chen",
+   "deployment_id": "dep-0008",
+   "finished_at": "2026-09-08T16:03:00Z",
+   "previous_version": "4.18.1",
+   "service": "orders-service",
+   "started_at": "2026-09-08T16:00:00Z",
+   "status": "succeeded",
+   "summary": "Order history pagination",
+   "version": "4.19.0"
+  },
+  {
+   "author": "bob",
+   "deployment_id": "dep-0009",
+   "finished_at": "2026-09-09T03:06:00Z",
+   "previous_version": "6.11.5",
+   "service": "ledger-service",
+   "started_at": "2026-09-09T03:02:00Z",
+   "status": "succeeded",
+   "summary": "Add metrics for cache usage",
+   "version": "6.11.6"
+  }
+ ]
+}

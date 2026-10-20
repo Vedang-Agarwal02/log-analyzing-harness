@@ -1,0 +1,14 @@
+{
+ "affected_services": [
+  "orders-db",
+  "orders-service"
+ ],
+ "customer_impact": "Slow order entry; about 6% of orders time out",
+ "incident_id": "INC-11",
+ "initial_hypothesis": "orders-service deployed v4.19.0 yesterday afternoon, so maybe a bad query?",
+ "reported_at": "2026-09-09T12:43:00Z",
+ "reporter": "DBA on-call",
+ "severity": "SEV2",
+ "summary": "orders-db CPU jumped to about 98% at 12:29 UTC and the orders-service p99 latency is around 3 seconds. Some order submissions time out.",
+ "title": "orders-db CPU at 98% and orders-service slow"
+}

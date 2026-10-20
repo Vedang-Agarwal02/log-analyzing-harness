@@ -1,0 +1,30 @@
+id: INC-10
+slug: sporadic-502-inconclusive
+seed: 110
+t0: "2026-08-19T19:00:00Z"
+reported_offset: "+45m"
+window: {before: "6h", after: "50m"}
+incident:
+  title: "Sporadic 502s for a few users"
+  severity: SEV3
+  reporter: "customer support"
+  summary: >-
+    Support received 14 tickets between 19:00 and 19:30 UTC from users who saw a 502 error
+    when submitting orders or loading the portfolio page. Most users are not affected and
+    retries usually work.
+  affected_services: [web-app, api-gateway]
+  customer_impact: "A handful of users affected"
+metric_signals:
+  - {service: web-app, metric: error_rate_pct, shape: spike, at: "0m", until: "+25m", to: 0.5}
+  - {service: api-gateway, metric: error_rate_pct, shape: spike, at: "0m", until: "+25m", to: 0.45}
+log_signals:
+  - {service: api-gateway, level: WARN, template: "upstream reset before headers (upstream={choice:orders-service|portfolio-service})", at: "0m", until: "+25m", rate_per_min: 0.6}
+  - {service: web-app, level: ERROR, template: "Upstream api-gateway returned 502 for /{choice:orders|portfolio}", at: "0m", until: "+25m", rate_per_min: 0.5}
+faults:
+  - {operation: list_deployments, fault: unavailable}
+  - {operation: search_logs, fault: partial, match: {service: web-app}, params: {drop_ranges: [["+5m", "+20m"]]}}
+ground_truth:
+  expected_status: inconclusive
+  data_gap_keywords: [deploy]
+  tags: [inconclusive, tool_failure]
+  notes: "Weak, intermittent symptoms with no service-level anomaly, the deploy tracker down and partial logs. The honest answer is inconclusive, with next diagnostic steps."

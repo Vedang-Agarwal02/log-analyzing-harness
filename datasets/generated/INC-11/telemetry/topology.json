@@ -1,0 +1,221 @@
+{
+ "services": [
+  {
+   "depends_on": [
+    "auth-service",
+    "portfolio-service",
+    "orders-service",
+    "quotes-service",
+    "payments-service",
+    "cluster-dns"
+   ],
+   "description": "Edge API gateway: TLS termination, authentication and routing",
+   "kind": "service",
+   "name": "api-gateway",
+   "team": "platform",
+   "tier": "edge"
+  },
+  {
+   "depends_on": [],
+   "description": "Redis: shared application cache (positions, quotes)",
+   "kind": "datastore",
+   "name": "app-cache",
+   "team": "platform",
+   "tier": "data"
+  },
+  {
+   "depends_on": [
+    "users-db",
+    "session-cache",
+    "cluster-dns"
+   ],
+   "description": "Login, sessions and token issuance (serves mTLS to the gateway)",
+   "kind": "service",
+   "name": "auth-service",
+   "team": "identity",
+   "tier": "core"
+  },
+  {
+   "depends_on": [],
+   "description": "Third-party bank payments gateway",
+   "kind": "external",
+   "name": "bank-gateway",
+   "team": "vendor",
+   "tier": "external"
+  },
+  {
+   "depends_on": [],
+   "description": "CoreDNS: service discovery for every service, per availability zone",
+   "kind": "infrastructure",
+   "name": "cluster-dns",
+   "team": "platform",
+   "tier": "platform"
+  },
+  {
+   "depends_on": [],
+   "description": "Third-party transactional email provider",
+   "kind": "external",
+   "name": "email-provider",
+   "team": "vendor",
+   "tier": "external"
+  },
+  {
+   "depends_on": [],
+   "description": "Kafka: order fills, payment events and ledger postings",
+   "kind": "datastore",
+   "name": "event-bus",
+   "team": "platform",
+   "tier": "data"
+  },
+  {
+   "depends_on": [],
+   "description": "PostgreSQL: ledger entries and balances",
+   "kind": "datastore",
+   "name": "ledger-db",
+   "team": "payments",
+   "tier": "data"
+  },
+  {
+   "depends_on": [
+    "ledger-db",
+    "event-bus",
+    "cluster-dns"
+   ],
+   "description": "Double-entry ledger: balances, buying power and postings",
+   "kind": "service",
+   "name": "ledger-service",
+   "team": "payments",
+   "tier": "core"
+  },
+  {
+   "depends_on": [],
+   "description": "Third-party market data feed",
+   "kind": "external",
+   "name": "market-data-vendor",
+   "team": "vendor",
+   "tier": "external"
+  },
+  {
+   "depends_on": [
+    "event-bus",
+    "email-provider",
+    "cluster-dns"
+   ],
+   "description": "Trade confirmations and account emails (consumes event-bus)",
+   "kind": "service",
+   "name": "notification-service",
+   "team": "engagement",
+   "tier": "support"
+  },
+  {
+   "depends_on": [],
+   "description": "PostgreSQL: orders, fills and order history",
+   "kind": "datastore",
+   "name": "orders-db",
+   "team": "trading",
+   "tier": "data"
+  },
+  {
+   "depends_on": [
+    "orders-db",
+    "risk-service",
+    "quotes-service",
+    "ledger-service",
+    "event-bus",
+    "cluster-dns"
+   ],
+   "description": "Order entry, validation and routing",
+   "kind": "service",
+   "name": "orders-service",
+   "team": "trading",
+   "tier": "core"
+  },
+  {
+   "depends_on": [
+    "bank-gateway",
+    "ledger-service",
+    "event-bus",
+    "cluster-dns"
+   ],
+   "description": "Deposits and withdrawals through the bank gateway",
+   "kind": "service",
+   "name": "payments-service",
+   "team": "payments",
+   "tier": "core"
+  },
+  {
+   "depends_on": [],
+   "description": "PostgreSQL: holdings and positions",
+   "kind": "datastore",
+   "name": "portfolio-db",
+   "team": "portfolio",
+   "tier": "data"
+  },
+  {
+   "depends_on": [
+    "portfolio-db",
+    "app-cache",
+    "quotes-service",
+    "ledger-service",
+    "orders-db",
+    "cluster-dns"
+   ],
+   "description": "Holdings, balances and real-time P&L for customer portfolios",
+   "kind": "service",
+   "name": "portfolio-service",
+   "team": "portfolio",
+   "tier": "core"
+  },
+  {
+   "depends_on": [
+    "market-data-vendor",
+    "app-cache",
+    "cluster-dns"
+   ],
+   "description": "Real-time quotes and option chains",
+   "kind": "service",
+   "name": "quotes-service",
+   "team": "market-data",
+   "tier": "core"
+  },
+  {
+   "depends_on": [
+    "orders-db",
+    "quotes-service",
+    "cluster-dns"
+   ],
+   "description": "Pre-trade risk and margin checks",
+   "kind": "service",
+   "name": "risk-service",
+   "team": "trading",
+   "tier": "core"
+  },
+  {
+   "depends_on": [],
+   "description": "Redis: login sessions",
+   "kind": "datastore",
+   "name": "session-cache",
+   "team": "identity",
+   "tier": "data"
+  },
+  {
+   "depends_on": [],
+   "description": "PostgreSQL: users and credentials",
+   "kind": "datastore",
+   "name": "users-db",
+   "team": "identity",
+   "tier": "data"
+  },
+  {
+   "depends_on": [
+    "api-gateway",
+    "cluster-dns"
+   ],
+   "description": "Customer-facing web and mobile backend-for-frontend",
+   "kind": "service",
+   "name": "web-app",
+   "team": "web",
+   "tier": "edge"
+  }
+ ]
+}

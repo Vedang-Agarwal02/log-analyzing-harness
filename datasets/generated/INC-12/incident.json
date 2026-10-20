@@ -1,0 +1,14 @@
+{
+ "affected_services": [
+  "notification-service",
+  "ledger-service"
+ ],
+ "customer_impact": "Delayed confirmations; balances update late",
+ "incident_id": "INC-12",
+ "initial_hypothesis": "notification-service deployed v1.14.0 at 06:40, so probably that.",
+ "reported_at": "2026-09-23T07:05:00Z",
+ "reporter": "operations",
+ "severity": "SEV2",
+ "summary": "Since about 06:45 UTC trade confirmation emails are delayed by more than 20 minutes and ledger postings are lagging. No errors are visible on customer-facing pages.",
+ "title": "Trade confirmations and ledger postings delayed"
+}

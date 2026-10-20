@@ -11,7 +11,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 2.2 Platform model & platform.yaml
 - [x] 2.3 Generator
 - [x] 2.4 Scenarios INC-01..06
-- [ ] 2.5 Scenarios INC-07..12
+- [x] 2.5 Scenarios INC-07..12
 - [ ] 3.1 Neutral modules & LLM types
 - [ ] 3.2 Schema & tool abstractions
 - [ ] 3.3 Retry & budget
@@ -61,3 +61,4 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - 2026-10-20: 2.2 done. test_datagen_platform.py: 3 passed.
 - 2026-10-20: 2.3 done. test_datagen_generate.py: 6 passed.
 - 2026-10-20: 2.4 done. INC-01..06 generate (6).
+- 2026-10-20: 2.5 done. test_dataset_scenarios.py: 15 passed (after generating). datasets/generated is 16.7 MB, a little above the plan's 5-15 MB estimate.

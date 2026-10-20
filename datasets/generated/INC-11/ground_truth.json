@@ -1,0 +1,43 @@
+{
+ "categories": [
+  "config_change"
+ ],
+ "data_gap_keywords": [],
+ "expected_status": "conclusive",
+ "incident_id": "INC-11",
+ "injected_conclusion_service": null,
+ "key_evidence": [
+  {
+   "id": "cfg-0006",
+   "kind": "change"
+  },
+  {
+   "kind": "metric_series",
+   "metric": "db_queries_per_request",
+   "service": "portfolio-service"
+  },
+  {
+   "contains": "SELECT * FROM fills",
+   "kind": "log_pattern",
+   "service": "orders-db"
+  }
+ ],
+ "notes": "A portfolio-service feature-flag ramp issues N+1 queries against orders-db. The alerting service is a victim, and the orders-service deploy the day before is a red herring.",
+ "red_herring_ids": [
+  "dep-0008"
+ ],
+ "red_herring_services": [
+  "orders-service",
+  "orders-db"
+ ],
+ "services": [
+  "portfolio-service"
+ ],
+ "slug": "pnl-flag-db-overload",
+ "tags": [
+  "misleading_evidence",
+  "cross_service",
+  "tool_failure"
+ ],
+ "trigger_id": "cfg-0006"
+}

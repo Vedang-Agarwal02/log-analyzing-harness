@@ -1,0 +1,11 @@
+{
+ "faults": [
+  {
+   "fault": "timeout",
+   "first_n": 4,
+   "match": {},
+   "operation": "list_config_changes",
+   "params": {}
+  }
+ ]
+}

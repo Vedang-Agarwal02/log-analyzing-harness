@@ -1,0 +1,59 @@
+{
+ "config_changes": [
+  {
+   "author": "dmitri",
+   "change_id": "cfg-0001",
+   "changed_at": "2026-03-31T14:51:00Z",
+   "key": "feature.dark_mode",
+   "new_value": "true",
+   "note": "Enable for all users",
+   "old_value": "false",
+   "service": "web-app",
+   "source": "feature_flag"
+  },
+  {
+   "author": "grace",
+   "change_id": "cfg-0002",
+   "changed_at": "2026-04-01T17:02:00Z",
+   "key": "http.client.timeout_ms",
+   "new_value": "2500",
+   "note": "Align client timeouts",
+   "old_value": "2000",
+   "service": "quotes-service",
+   "source": "runtime_config"
+  },
+  {
+   "author": "dmitri",
+   "change_id": "cfg-0003",
+   "changed_at": "2026-04-06T07:47:00Z",
+   "key": "cache.ttl_seconds",
+   "new_value": "90",
+   "note": "Reduce cache churn",
+   "old_value": "60",
+   "service": "api-gateway",
+   "source": "runtime_config"
+  },
+  {
+   "author": "esha",
+   "change_id": "cfg-0004",
+   "changed_at": "2026-04-06T07:53:00Z",
+   "key": "feature.new_onboarding_flow",
+   "new_value": "5%",
+   "note": "Gradual rollout",
+   "old_value": "0%",
+   "service": "web-app",
+   "source": "feature_flag"
+  },
+  {
+   "author": "dmitri",
+   "change_id": "cfg-0005",
+   "changed_at": "2026-04-07T01:41:00Z",
+   "key": "log.level",
+   "new_value": "DEBUG",
+   "note": "Temporary debug logging",
+   "old_value": "INFO",
+   "service": "quotes-service",
+   "source": "runtime_config"
+  }
+ ]
+}

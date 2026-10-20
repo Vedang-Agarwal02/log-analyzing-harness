@@ -1,0 +1,103 @@
+{
+ "deployments": [
+  {
+   "author": "bob",
+   "deployment_id": "dep-0001",
+   "finished_at": "2026-07-15T01:36:00Z",
+   "previous_version": "6.15.0",
+   "service": "notification-service",
+   "started_at": "2026-07-15T01:34:00Z",
+   "status": "succeeded",
+   "summary": "Fix flaky retry in HTTP client",
+   "version": "6.15.1"
+  },
+  {
+   "author": "farid",
+   "deployment_id": "dep-0002",
+   "finished_at": "2026-07-15T10:12:00Z",
+   "previous_version": "4.17.2",
+   "service": "risk-service",
+   "started_at": "2026-07-15T10:09:00Z",
+   "status": "succeeded",
+   "summary": "Fix flaky retry in HTTP client",
+   "version": "4.17.3"
+  },
+  {
+   "author": "dmitri",
+   "deployment_id": "dep-0003",
+   "finished_at": "2026-07-15T20:17:00Z",
+   "previous_version": "4.9.6",
+   "service": "web-app",
+   "started_at": "2026-07-15T20:13:00Z",
+   "status": "succeeded",
+   "summary": "Fix flaky retry in HTTP client",
+   "version": "4.9.7"
+  },
+  {
+   "author": "grace",
+   "deployment_id": "dep-0004",
+   "finished_at": "2026-07-16T10:26:00Z",
+   "previous_version": "5.19.4",
+   "service": "payments-service",
+   "started_at": "2026-07-16T10:24:00Z",
+   "status": "succeeded",
+   "summary": "Improve request logging",
+   "version": "5.19.5"
+  },
+  {
+   "author": "alice",
+   "deployment_id": "dep-0005",
+   "finished_at": "2026-07-17T10:34:00Z",
+   "previous_version": "5.2.7",
+   "service": "auth-service",
+   "started_at": "2026-07-17T10:31:00Z",
+   "status": "succeeded",
+   "summary": "Tidy up feature flag checks",
+   "version": "5.2.8"
+  },
+  {
+   "author": "alice",
+   "deployment_id": "dep-0006",
+   "finished_at": "2026-07-17T18:07:00Z",
+   "previous_version": "6.1.2",
+   "service": "auth-service",
+   "started_at": "2026-07-17T18:03:00Z",
+   "status": "succeeded",
+   "summary": "Bump dependencies",
+   "version": "6.1.3"
+  },
+  {
+   "author": "bob",
+   "deployment_id": "dep-0007",
+   "finished_at": "2026-07-18T02:02:00Z",
+   "previous_version": "4.0.0",
+   "service": "portfolio-service",
+   "started_at": "2026-07-18T02:00:00Z",
+   "status": "succeeded",
+   "summary": "Add metrics for cache usage",
+   "version": "4.0.1"
+  },
+  {
+   "author": "esha",
+   "deployment_id": "dep-0008",
+   "finished_at": "2026-07-20T10:17:00Z",
+   "previous_version": "6.19.7",
+   "service": "portfolio-service",
+   "started_at": "2026-07-20T10:14:00Z",
+   "status": "succeeded",
+   "summary": "Tidy up feature flag checks",
+   "version": "6.19.8"
+  },
+  {
+   "author": "esha",
+   "deployment_id": "dep-0009",
+   "finished_at": "2026-07-21T15:12:00Z",
+   "previous_version": "5.1.1",
+   "service": "portfolio-service",
+   "started_at": "2026-07-21T15:08:00Z",
+   "status": "succeeded",
+   "summary": "Copy changes on the holdings page",
+   "version": "5.1.2"
+  }
+ ]
+}

@@ -1,0 +1,15 @@
+{
+ "affected_services": [
+  "web-app",
+  "quotes-service",
+  "portfolio-service"
+ ],
+ "customer_impact": "Short bursts of failed page loads every few hours",
+ "incident_id": "INC-04",
+ "initial_hypothesis": "Probably the traffic spike at market open.",
+ "reported_at": "2026-05-13T16:30:00Z",
+ "reporter": "web on-call",
+ "severity": "SEV3",
+ "summary": "For the last couple of days users intermittently get 502 errors on the quotes and portfolio pages. Each episode lasts a few minutes; the latest was around 16:20 UTC.",
+ "title": "Intermittent 502s on quotes and portfolio pages"
+}

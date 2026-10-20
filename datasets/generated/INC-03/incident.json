@@ -1,0 +1,13 @@
+{
+ "affected_services": [
+  "payments-service"
+ ],
+ "customer_impact": "Customers cannot fund their accounts",
+ "incident_id": "INC-03",
+ "initial_hypothesis": "Could the payments-service v7.2.0 deploy from this morning be responsible?",
+ "reported_at": "2026-04-07T09:55:00Z",
+ "reporter": "payments on-call",
+ "severity": "SEV2",
+ "summary": "Since about 09:40 UTC deposit requests are failing or hanging. The payments-service error rate is around 25%.",
+ "title": "Deposits failing or hanging"
+}

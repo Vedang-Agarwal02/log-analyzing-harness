@@ -1,0 +1,14 @@
+{
+ "faults": [
+  {
+   "fault": "timeout",
+   "first_n": 1,
+   "match": {
+    "metric": "error_rate_pct",
+    "service": "orders-service"
+   },
+   "operation": "get_metric",
+   "params": {}
+  }
+ ]
+}

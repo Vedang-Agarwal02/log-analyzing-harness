@@ -1,0 +1,70 @@
+{
+ "config_changes": [
+  {
+   "author": "grace",
+   "change_id": "cfg-0001",
+   "changed_at": "2026-06-11T02:10:00Z",
+   "key": "feature.dark_mode",
+   "new_value": "true",
+   "note": "Enable for all users",
+   "old_value": "false",
+   "service": "orders-service",
+   "source": "feature_flag"
+  },
+  {
+   "author": "alice",
+   "change_id": "cfg-0002",
+   "changed_at": "2026-06-12T07:10:00Z",
+   "key": "cache.ttl_seconds",
+   "new_value": "90",
+   "note": "Reduce cache churn",
+   "old_value": "60",
+   "service": "portfolio-service",
+   "source": "runtime_config"
+  },
+  {
+   "author": "chen",
+   "change_id": "cfg-0003",
+   "changed_at": "2026-06-13T05:53:00Z",
+   "key": "log.level",
+   "new_value": "DEBUG",
+   "note": "Temporary debug logging",
+   "old_value": "INFO",
+   "service": "orders-service",
+   "source": "runtime_config"
+  },
+  {
+   "author": "chen",
+   "change_id": "cfg-0004",
+   "changed_at": "2026-06-13T08:19:00Z",
+   "key": "feature.new_onboarding_flow",
+   "new_value": "5%",
+   "note": "Gradual rollout",
+   "old_value": "0%",
+   "service": "notification-service",
+   "source": "feature_flag"
+  },
+  {
+   "author": "farid",
+   "change_id": "cfg-0005",
+   "changed_at": "2026-06-17T02:06:00Z",
+   "key": "log.level",
+   "new_value": "DEBUG",
+   "note": "Temporary debug logging",
+   "old_value": "INFO",
+   "service": "notification-service",
+   "source": "runtime_config"
+  },
+  {
+   "author": "grace",
+   "change_id": "cfg-0006",
+   "changed_at": "2026-06-17T13:15:00Z",
+   "key": "feature.extended_hours_quotes",
+   "new_value": "true",
+   "note": "Enable extended-hours quotes for beta users",
+   "old_value": "false",
+   "service": "quotes-service",
+   "source": "feature_flag"
+  }
+ ]
+}
