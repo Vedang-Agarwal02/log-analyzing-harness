@@ -45,7 +45,7 @@ LONG_PROMPT: dict[str, tuple[int, Price]] = {
 
 # Rough per-run volume used only for the pre-run estimate; replace it with measured smoke-run numbers.
 TYPICAL_RUN = Usage(
-    input_tokens=60_000, output_tokens=40_000, cache_read_tokens=280_000, cache_write_tokens=60_000
+    input_tokens=237_000, output_tokens=39_000, cache_read_tokens=144_000, cache_write_tokens=0
 )
 
 

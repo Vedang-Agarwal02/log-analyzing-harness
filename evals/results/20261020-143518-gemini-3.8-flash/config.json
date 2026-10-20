@@ -1,0 +1,67 @@
+{
+ "model": "gemini-3.8-flash",
+ "scenarios": [
+  "INC-01",
+  "INC-10"
+ ],
+ "settings": {
+  "agents_file": "config/agents.yaml",
+  "budget": {
+   "max_llm_calls": 120,
+   "max_tool_calls": 250,
+   "max_total_tokens": 1500000,
+   "max_wall_seconds": 1800.0,
+   "reserve_llm_calls": 8,
+   "reserve_seconds": 120.0,
+   "reserve_tokens": 150000
+  },
+  "datasets_dir": "datasets/generated",
+  "evaluation": {
+   "concurrency": 4,
+   "run_timeout_s": 2700.0,
+   "trials": 3
+  },
+  "investigation": {
+   "checks_enabled": true,
+   "critic_enabled": true,
+   "default_lookback_hours": 3.0,
+   "max_followup_tasks": 4,
+   "max_initial_tasks": 6,
+   "max_parallel_tasks": 4,
+   "max_rounds": 3,
+   "max_task_attempts": 2,
+   "max_tasks_total": 12,
+   "stagnation_delta": 0.05,
+   "task_timeout_s": 240.0
+  },
+  "llm": {
+   "gemini_tool_mode": "AUTO",
+   "max_retries": 3,
+   "max_tokens": 32000,
+   "model": "gemini-3.8-flash",
+   "prompt_caching": true,
+   "refusal_fallback": true,
+   "timeout_s": 600.0
+  },
+  "prompts_dir": "prompts",
+  "runs_dir": "runs",
+  "simulation": {
+   "latency_ms_max": 200,
+   "latency_ms_min": 30
+  },
+  "tools": {
+   "backoff_base_s": 0.25,
+   "backoff_max_s": 4.0,
+   "breaker_cooldown_s": 30.0,
+   "breaker_threshold": 4,
+   "default_timeout_s": 8.0,
+   "max_attempts": 3,
+   "max_rate_limit_wait_s": 2.0
+  }
+ },
+ "systems": [
+  "multi",
+  "single"
+ ],
+ "trials": 1
+}

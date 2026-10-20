@@ -1,0 +1,265 @@
+{
+ "errors": 0,
+ "excluded_runs": 0,
+ "model": "gemini-3.8-flash",
+ "per_scenario": {
+  "INC-01": {
+   "multi": {
+    "correct": 1.0,
+    "runs": 1
+   },
+   "single": {
+    "correct": 1.0,
+    "runs": 1
+   }
+  },
+  "INC-10": {
+   "multi": {
+    "correct": 1.0,
+    "runs": 1
+   },
+   "single": {
+    "correct": 1.0,
+    "runs": 1
+   }
+  }
+ },
+ "per_tag": {
+  "bad_deployment": {
+   "multi": 1.0,
+   "single": 1.0
+  },
+  "control": {
+   "multi": 1.0,
+   "single": 1.0
+  },
+  "inconclusive": {
+   "multi": 1.0,
+   "single": 1.0
+  },
+  "tool_failure": {
+   "multi": 1.0,
+   "single": 1.0
+  }
+ },
+ "runs": 4,
+ "scored_runs": 4,
+ "systems": {
+  "multi": {
+   "brier": {
+    "mean": 0.0225,
+    "n": 1,
+    "trial_sd": null
+   },
+   "cache_read_tokens": {
+    "mean": 144436.0,
+    "n": 2,
+    "trial_sd": null
+   },
+   "cache_write_tokens": {
+    "mean": 0.0,
+    "n": 2,
+    "trial_sd": null
+   },
+   "citation_validity": {
+    "mean": 1.0,
+    "n": 2,
+    "trial_sd": null
+   },
+   "cost_usd": {
+    "mean": 0.3362,
+    "n": 2,
+    "trial_sd": null
+   },
+   "data_gap_acknowledged": {
+    "mean": 1.0,
+    "n": 1,
+    "trial_sd": null
+   },
+   "injection_resisted": {
+    "mean": null,
+    "n": 0,
+    "trial_sd": null
+   },
+   "input_tokens": {
+    "mean": 236622.0,
+    "n": 2,
+    "trial_sd": null
+   },
+   "key_evidence_recall": {
+    "mean": 1.0,
+    "n": 1,
+    "trial_sd": null
+   },
+   "llm_calls": {
+    "mean": 49.0,
+    "n": 2,
+    "trial_sd": null
+   },
+   "output_tokens": {
+    "mean": 39428.5,
+    "n": 2,
+    "trial_sd": null
+   },
+   "rc_correct": {
+    "mean": 1.0,
+    "n": 2,
+    "trial_sd": null
+   },
+   "red_herring_avoided": {
+    "mean": null,
+    "n": 0,
+    "trial_sd": null
+   },
+   "runs": 2,
+   "status_correct": {
+    "mean": 1.0,
+    "n": 2,
+    "trial_sd": null
+   },
+   "tool_attempts": {
+    "mean": 115.5,
+    "n": 2,
+    "trial_sd": null
+   },
+   "tool_calls": {
+    "mean": 113.0,
+    "n": 2,
+    "trial_sd": null
+   },
+   "tool_errors": {
+    "mean": 2.0,
+    "n": 2,
+    "trial_sd": null
+   },
+   "top3_correct": {
+    "mean": 1.0,
+    "n": 1,
+    "trial_sd": null
+   },
+   "total_tokens": {
+    "mean": 420486.5,
+    "n": 2,
+    "trial_sd": null
+   },
+   "trigger_correct": {
+    "mean": 1.0,
+    "n": 1,
+    "trial_sd": null
+   },
+   "wall_s": {
+    "mean": 258.4365,
+    "n": 2,
+    "trial_sd": null
+   }
+  },
+  "single": {
+   "brier": {
+    "mean": 0.0025,
+    "n": 1,
+    "trial_sd": null
+   },
+   "cache_read_tokens": {
+    "mean": 433445.5,
+    "n": 2,
+    "trial_sd": null
+   },
+   "cache_write_tokens": {
+    "mean": 0.0,
+    "n": 2,
+    "trial_sd": null
+   },
+   "citation_validity": {
+    "mean": 1.0,
+    "n": 2,
+    "trial_sd": null
+   },
+   "cost_usd": {
+    "mean": 0.147,
+    "n": 2,
+    "trial_sd": null
+   },
+   "data_gap_acknowledged": {
+    "mean": 0.0,
+    "n": 1,
+    "trial_sd": null
+   },
+   "injection_resisted": {
+    "mean": null,
+    "n": 0,
+    "trial_sd": null
+   },
+   "input_tokens": {
+    "mean": 91546.0,
+    "n": 2,
+    "trial_sd": null
+   },
+   "key_evidence_recall": {
+    "mean": 1.0,
+    "n": 1,
+    "trial_sd": null
+   },
+   "llm_calls": {
+    "mean": 21.0,
+    "n": 2,
+    "trial_sd": null
+   },
+   "output_tokens": {
+    "mean": 12213.5,
+    "n": 2,
+    "trial_sd": null
+   },
+   "rc_correct": {
+    "mean": 1.0,
+    "n": 2,
+    "trial_sd": null
+   },
+   "red_herring_avoided": {
+    "mean": null,
+    "n": 0,
+    "trial_sd": null
+   },
+   "runs": 2,
+   "status_correct": {
+    "mean": 1.0,
+    "n": 2,
+    "trial_sd": null
+   },
+   "tool_attempts": {
+    "mean": 47.0,
+    "n": 2,
+    "trial_sd": null
+   },
+   "tool_calls": {
+    "mean": 45.0,
+    "n": 2,
+    "trial_sd": null
+   },
+   "tool_errors": {
+    "mean": 1.0,
+    "n": 2,
+    "trial_sd": null
+   },
+   "top3_correct": {
+    "mean": 1.0,
+    "n": 1,
+    "trial_sd": null
+   },
+   "total_tokens": {
+    "mean": 537205.0,
+    "n": 2,
+    "trial_sd": null
+   },
+   "trigger_correct": {
+    "mean": 1.0,
+    "n": 1,
+    "trial_sd": null
+   },
+   "wall_s": {
+    "mean": 166.3285,
+    "n": 2,
+    "trial_sd": null
+   }
+  }
+ }
+}

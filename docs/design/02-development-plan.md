@@ -297,7 +297,7 @@ eval:
 	uv run investigator eval --trials 3
 
 record:
-	uv run investigator record-cassettes --scenario INC-01
+	uv run investigator record-cassettes --scenario INC-01 --model $(MODEL) --out-dir tests/cassettes/$(MODEL)
 ```
 
 #### File: `AGENTS.md`
@@ -7487,13 +7487,39 @@ def test_contents_echo_model_parts_and_group_function_responses() -> None:
     )
     user = contents[2]
     assert isinstance(user, types.Content) and user.parts is not None
-    first, second, note = user.parts
+    first, second = user.parts
     assert first.function_response is not None and second.function_response is not None
     assert (first.function_response.id, first.function_response.name) == ("c1", "query_logs")
     assert first.function_response.response == {"ok": True, "data": {"patterns": []}}
     assert (second.function_response.id, second.function_response.name) == ("c2", "list_services")
-    assert second.function_response.response == {"error": "not json"}
-    assert note.text == "Tool-call limit reached."
+    assert second.function_response.response == {
+        "error": "not json",
+        "harness_note": "Tool-call limit reached.",
+    }
+
+
+def test_function_responses_never_share_a_user_turn_with_text() -> None:
+    # Live Gemini rejects such a turn ("400 INVALID_ARGUMENT: Requests ending with a model turn are not
+    # supported"), so the harness note travels inside the last function response instead.
+    model_turn = AssistantMessage(
+        raw=(part_to_dict(_call("query_logs", "c1", service="a")),),
+        tool_calls=(ToolCall("c1", "query_logs", {"service": "a"}),),
+    )
+    results = UserMessage(
+        parts=(
+            ToolResultPart("c1", json.dumps({"ok": True})),
+            UserText("You have used all 16 tool calls allowed for this task."),
+        )
+    )
+    contents = to_gemini_contents(_request(model_turn, results).messages)
+    last = contents[-1]
+    assert isinstance(last, types.Content) and last.role == "user" and last.parts is not None
+    [only] = last.parts
+    assert only.text is None and only.function_response is not None
+    assert only.function_response.response == {
+        "ok": True,
+        "harness_note": "You have used all 16 tool calls allowed for this task.",
+    }
 
 
 def test_function_responses_omit_ids_the_model_did_not_send_and_empty_turns_get_text() -> None:
@@ -7790,17 +7816,25 @@ def to_gemini_contents(messages: tuple[Message, ...]) -> list[types.ContentUnion
             ]
             contents.append(types.Content(role="model", parts=parts))
             continue
-        user_parts: list[types.Part] = []
+        results: list[tuple[str, str | None, dict[str, Any]]] = []
         for part in message.parts:
             if isinstance(part, ToolResultPart):
                 name, call_id = calls.get(part.tool_call_id, ("unknown_tool", None))
-                response = types.FunctionResponse(
-                    id=call_id, name=name, response=_response_payload(part)
-                )
-                user_parts.append(types.Part(function_response=response))
-        for part in message.parts:
-            if isinstance(part, UserText):
-                user_parts.append(types.Part(text=part.text))
+                results.append((name, call_id, _response_payload(part)))
+        notes = [part.text for part in message.parts if isinstance(part, UserText)]
+        if results and notes:
+            # Gemini rejects a user turn that mixes function responses with text ("400 INVALID_ARGUMENT:
+            # Requests ending with a model turn are not supported"), so the note rides inside the last response.
+            name, call_id, payload = results[-1]
+            results[-1] = (name, call_id, {**payload, "harness_note": "\n".join(notes)})
+            notes = []
+        user_parts = [
+            types.Part(
+                function_response=types.FunctionResponse(id=call_id, name=name, response=payload)
+            )
+            for name, call_id, payload in results
+        ]
+        user_parts.extend(types.Part(text=text) for text in notes)
         contents.append(types.Content(role="user", parts=user_parts))
     return contents
 
@@ -7971,7 +8005,7 @@ class RoutingLLM:
 - [ ] **Step 5: Run the tests to verify they pass**
 
 Run: `uv run pytest tests/unit/test_harness_gemini_client.py tests/unit/test_harness_routing.py -q`
-Expected: `22 passed`
+Expected: `23 passed`
 
 - [ ] **Step 6: Milestone check and commit**
 
@@ -16169,7 +16203,7 @@ eval:
 	uv run investigator eval --trials 3
 
 record:
-	uv run investigator record-cassettes --scenario INC-01
+	uv run investigator record-cassettes --scenario INC-01 --model $(MODEL) --out-dir tests/cassettes/$(MODEL)
 ```
 
 - [ ] **Step 5: Run the tests to verify they pass**
@@ -18119,14 +18153,19 @@ git commit -m "feat(eval): summary tables, results.md and the eval quality gate"
 ### Task 6.5: Cassettes, replay regression test and live smoke test
 
 **Files:**
-- Create: `tests/cassettes/INC-01-multi.json`, `tests/cassettes/INC-01-single.json` (recorded, needs an API key)
+- Create: `tests/cassettes/<model id>/INC-01-multi.json`, `tests/cassettes/<model id>/INC-01-single.json` (recorded with one model and needs that provider's API key; the replay test takes the model id from the folder name, so it works for `claude-*` and `gemini-*` alike)
 - Test: `tests/integration/test_replay.py`, `tests/live/test_live_smoke.py`, `tests/live/test_live_gemini.py`
 
 - [ ] **Step 1: Write the replay test (it is skipped until cassettes exist)**
 
 #### File: `tests/integration/test_replay.py`
 ```python
-"""Replays recorded real-model runs offline. A cassette miss means a prompt, tool or transcript changed."""
+"""Replays recorded real-model runs offline. A cassette miss means a prompt, tool or transcript changed.
+
+Cassettes are stored per model as tests/cassettes/<model id>/INC-01-<system>.json, so the model id comes
+from the folder name and nothing here is tied to one provider. To record or refresh one:
+`uv run investigator record-cassettes --scenario INC-01 --model <id> --out-dir tests/cassettes/<id> --yes`
+"""
 
 from pathlib import Path
 
@@ -18136,22 +18175,41 @@ from investigator.harness.recording import RecordingLLM
 from investigator.runtime import run_investigation
 from investigator.settings import load_settings
 
+CASSETTES = Path(__file__).resolve().parents[1] / "cassettes"
+SYSTEMS = ("multi", "single")
 
-@pytest.mark.parametrize("system", ["multi", "single"])
-async def test_recorded_run_replays_exactly(repo_root: Path, system: str) -> None:
-    cassette = repo_root / "tests" / "cassettes" / f"INC-01-{system}.json"
-    if not cassette.exists():
-        pytest.skip(
-            f"{cassette.name} not recorded yet (run `uv run investigator record-cassettes --yes`)"
-        )
+
+def _recorded() -> list[tuple[str, str]]:
+    folders = sorted(p for p in CASSETTES.iterdir() if p.is_dir()) if CASSETTES.is_dir() else []
+    return [
+        (folder.name, system)
+        for folder in folders
+        for system in SYSTEMS
+        if (folder / f"INC-01-{system}.json").exists()
+    ]
+
+
+NOT_RECORDED = pytest.param(
+    "",
+    "",
+    marks=pytest.mark.skip(
+        reason="no cassettes recorded yet (run `uv run investigator record-cassettes --model <id> "
+        "--out-dir tests/cassettes/<id> --yes`)"
+    ),
+)
+
+
+@pytest.mark.parametrize("model,system", _recorded() or [NOT_RECORDED])
+async def test_recorded_run_replays_exactly(repo_root: Path, model: str, system: str) -> None:
     settings = load_settings(
         repo_root / "config" / "default.yaml",
         {
+            "llm": {"model": model},
             "simulation": {"latency_ms_min": 0, "latency_ms_max": 0},
             "tools": {"backoff_base_s": 0.0, "backoff_max_s": 0.0},
         },
     )
-    replay = RecordingLLM(cassette, mode="replay")
+    replay = RecordingLLM(CASSETTES / model / f"INC-01-{system}.json", mode="replay")
     outcome = await run_investigation(
         scenario_id="INC-01", system=system, settings=settings, llm=replay
     )  # type: ignore[arg-type]
@@ -18209,11 +18267,11 @@ If Step 3 fails, apply only the matching fix, re-run, and log it as `PLAN-FIX` i
 
 - [ ] **Step 5: Record the cassettes and verify replay**
 
-Run: `uv run investigator record-cassettes --scenario INC-01 --yes`
-Expected: `recorded tests/cassettes/INC-01-multi.json (...)` and `recorded tests/cassettes/INC-01-single.json (...)`.
+Run: `uv run investigator record-cassettes --scenario INC-01 --model <model id> --out-dir tests/cassettes/<model id> --yes` (for example `gemini-3.8-flash`, or `claude-opus-5-5` with a Claude key)
+Expected: `recorded tests/cassettes/<model id>/INC-01-multi.json (...)` and `recorded tests/cassettes/<model id>/INC-01-single.json (...)`.
 
 Run: `uv run pytest tests/integration/test_replay.py -q`
-Expected: `2 passed`, now running fully offline.
+Expected: `2 passed` for each recorded model, now running fully offline.
 
 - [ ] **Step 6: Smoke evaluation (about $5)**
 
@@ -18232,7 +18290,10 @@ Run `uv run pytest tests/unit/test_evaluation_pricing.py -q` again; expected `5 
 
 #### File: `tests/live/test_live_gemini.py`
 ```python
-"""Live check of the Gemini path (well under $1). Run with: uv run pytest tests/live/test_live_gemini.py -m live -q"""
+"""Live check of the Gemini path (well under $1). Run with: uv run pytest tests/live/test_live_gemini.py -m live -q
+
+The model defaults to gemini-3.8-flash; set GEMINI_SMOKE_MODEL to try another one, e.g. gemini-4-argon.
+"""
 
 import os
 
@@ -18241,7 +18302,7 @@ import pytest
 from investigator.runtime import build_llm, run_investigation
 from investigator.settings import load_settings
 
-GEMINI_SMOKE_MODEL = "gemini-3.8-flash"
+GEMINI_SMOKE_MODEL = os.environ.get("GEMINI_SMOKE_MODEL", "gemini-3.8-flash")
 HAS_KEY = bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
 
 

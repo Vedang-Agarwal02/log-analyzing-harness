@@ -35,4 +35,4 @@ eval:
 	uv run investigator eval --trials 3
 
 record:
-	uv run investigator record-cassettes --scenario INC-01
+	uv run investigator record-cassettes --scenario INC-01 --model $(MODEL) --out-dir tests/cassettes/$(MODEL)
