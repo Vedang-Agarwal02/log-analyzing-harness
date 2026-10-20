@@ -13,7 +13,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 2.4 Scenarios INC-01..06
 - [x] 2.5 Scenarios INC-07..12
 - [x] 3.1 Neutral modules & LLM types
-- [ ] 3.2 Schema & tool abstractions
+- [x] 3.2 Schema & tool abstractions
 - [ ] 3.3 Retry & budget
 - [ ] 3.4 Hooks & tracing
 - [ ] 3.5 Tool executor
@@ -64,4 +64,5 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - 2026-10-20: 2.5 done. test_dataset_scenarios.py: 15 passed (after generating). datasets/generated is 16.7 MB, a little above the plan's 5-15 MB estimate.
 - 2026-10-20: M2 check: pytest 62 passed, mypy clean after the ignore below.
 - 2026-10-20: 3.1 done. test_harness_llm.py: 6 passed.
+- 2026-10-20: 3.2 done. test_harness_tools.py: 4 passed.
 - TYPE-IGNORE: src/investigator/datagen/generate.py:369 `[assignment]` (loop variable `service` reused from a PlatformService loop; no logic change).
