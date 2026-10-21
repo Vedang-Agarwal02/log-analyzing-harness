@@ -18303,11 +18303,15 @@ from investigator.runtime import build_llm, run_investigation
 from investigator.settings import load_settings
 
 GEMINI_SMOKE_MODEL = os.environ.get("GEMINI_SMOKE_MODEL", "gemini-3.8-flash")
-HAS_KEY = bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
+USES_VERTEX = os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "").lower() in ("1", "true")
+HAS_KEY = bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or USES_VERTEX)
 
 
 @pytest.mark.live
-@pytest.mark.skipif(not HAS_KEY, reason="needs GEMINI_API_KEY (or GOOGLE_API_KEY)")
+@pytest.mark.skipif(
+    not HAS_KEY,
+    reason="needs GEMINI_API_KEY (or GOOGLE_API_KEY), or Vertex AI (GOOGLE_GENAI_USE_VERTEXAI=true)",
+)
 @pytest.mark.parametrize("system", ["multi", "single"])
 async def test_live_gemini_run_completes(system: str) -> None:
     settings = load_settings(None, {"llm": {"model": GEMINI_SMOKE_MODEL}})
@@ -18935,7 +18939,7 @@ Every setting is in `config/default.yaml`. Use `--config my.yaml` to load anothe
 
 Agents (prompt, tools, effort, turn limits, and an optional per-agent `model`) are defined in `config/agents.yaml`, and their prompts in `prompts/`. Giving agents models from different providers mixes Claude and Gemini in one run.
 
-Environment variables: `ANTHROPIC_API_KEY` for Claude models, and `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) for Gemini models. Only the keys for the providers you use are needed.
+Environment variables: `ANTHROPIC_API_KEY` for Claude models, and `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) for Gemini models. Only the keys for the providers you use are needed. To reach Gemini through Google Cloud (Vertex AI) instead of an API key, set `GOOGLE_GENAI_USE_VERTEXAI=true`, `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` and sign in with `gcloud auth application-default login`; no code change is needed.
 
 ## How it works
 
@@ -19313,7 +19317,7 @@ If the repository has a GitHub remote, push and check that the `ci` workflow pas
 ### Task 7.4: Final evaluation, technical note, example reports and transcripts
 
 **Files:**
-- Create: `scripts/render_note.py`, `docs/technical-note.template.md`, `docs/technical-note.md` (rendered), `docs/examples/*.md`, `docs/transcripts/README.md`, `evals/results/final-claude-opus-5-5/` (eval output)
+- Create: `scripts/render_note.py`, `docs/technical-note.template.md`, `docs/technical-note.md` (rendered), `docs/examples/*.md`, `docs/transcripts/README.md`, `evals/results/final-gemini-3.8-flash/` (eval output; use `final-<model id>` if you evaluate another model, and update the README link)
 - Test: `tests/unit/test_render_note.py`, `tests/architecture/test_deliverables.py`
 
 **Interfaces:**
@@ -19453,7 +19457,7 @@ Expected: 6 failures (`FileNotFoundError` for `scripts/render_note.py`, `docs/te
 ```python
 """Fill docs/technical-note.template.md with numbers from an evaluation results directory.
 
-Usage: uv run python scripts/render_note.py evals/results/final-claude-opus-5-5
+Usage: uv run python scripts/render_note.py evals/results/final-gemini-3.8-flash
 Writes docs/technical-note.md and prints its word count (the assignment's limit is 500).
 """
 
@@ -19551,7 +19555,7 @@ if __name__ == "__main__":
 
 ## Approach
 
-A deterministic coordinator runs six Claude agents (`«MODEL»`) over a shared blackboard. An LLM planner turns the incident into a task graph. Observability and dependency specialists run in parallel with least-privilege tools. A reasoning agent ranks two to five hypotheses, and a critic accepts them, asks for a revision or requests more evidence, for up to three rounds. A reporter writes the final report. Tools mint evidence IDs and every citation is validated, so each claim points at data. Code, not the model, derives the status from confidence, which makes "inconclusive" a normal outcome.
+A deterministic coordinator runs six LLM agents (`«MODEL»`) over a shared blackboard. An LLM planner turns the incident into a task graph. Observability and dependency specialists run in parallel with least-privilege tools. A reasoning agent ranks two to five hypotheses, and a critic accepts them, asks for a revision or requests more evidence, for up to three rounds. A reporter writes the final report. Tools mint evidence IDs and every citation is validated, so each claim points at data. Code, not the model, derives the status from confidence, which makes "inconclusive" a normal outcome.
 
 ## Key decisions
 
@@ -19589,14 +19593,16 @@ Real backends behind the existing ports (Loki, Prometheus, ArgoCD); durable exec
 Run: `uv run pytest tests/unit/test_render_note.py -q`
 Expected: `2 passed`
 
-- [ ] **Step 4: Run the final evaluation (HUMAN STEP: needs an API key; about 4 hours at concurrency 4; about $100 on Claude Opus 5.5, or about $75 on `gemini-4-argon` before 2026-12-01 and about $150 after)**
+- [ ] **Step 4: Run the final evaluation (HUMAN STEP: needs an API key; roughly $20 and 1–2 hours on `gemini-3.8-flash` at concurrency 4 when the API is responsive, scaled up from the smoke run, so trust the estimate the command prints; about 4 hours and $100 on Claude Opus 5.5; about $75 on `gemini-4-argon` before 2026-12-01 and about $150 after)**
 
-On Gemini, add `--model gemini-4-argon` to the command and use `final-gemini-4-argon` instead of `final-claude-opus-5-5` in this step and Steps 5–6.
+First confirm the Gemini path with the cheap live test (under $1): `uv run pytest tests/live/test_live_gemini.py -m live -q`. Expected: `2 passed`. It pins that a specialist that uses all its tool calls no longer fails with `Requests ending with a model turn are not supported`. Do not start the long run until it passes.
 
 Ask the person to approve the cost before running.
 
-Run: `uv run investigator eval --trials 3 --yes --out evals/results/final-claude-opus-5-5`
-Expected: `72 runs on claude-opus-5-5: 12 scenarios x 2 systems x 3 trials`, then one `done ...` line per run, then `results: evals/results/final-claude-opus-5-5/results.md`.
+Run: `uv run investigator eval --trials 3 --yes --model gemini-3.8-flash --out evals/results/final-gemini-3.8-flash`
+Expected: `72 runs on gemini-3.8-flash: 12 scenarios x 2 systems x 3 trials`, then one `done ...` line per run, then `results: evals/results/final-gemini-3.8-flash/results.md`.
+
+To evaluate another model, change `--model` and name the folder `final-<model id>` (for example `--model gemini-4-argon` and `final-gemini-4-argon`, or `--model claude-opus-5-5` and `final-claude-opus-5-5`), use that folder in Steps 5–6, and update the README links.
 
 - If the command is interrupted, run the same command again. Finished runs are skipped.
 - If `ERROR ...` lines appeared, run the same command once more. Failed runs are not in `results.jsonl`, so they are retried.
@@ -19604,15 +19610,15 @@ Expected: `72 runs on claude-opus-5-5: 12 scenarios x 2 systems x 3 trials`, the
 
 - [ ] **Step 5: Render the technical note**
 
-Run: `uv run python scripts/render_note.py evals/results/final-claude-opus-5-5`
+Run: `uv run python scripts/render_note.py evals/results/final-gemini-3.8-flash`
 Expected: `wrote docs/technical-note.md (NNN words; the limit is 500)` with NNN ≤ 500.
 
 - [ ] **Step 6: Copy two example reports**
 
 ```bash
 mkdir -p docs/examples
-cp evals/results/final-claude-opus-5-5/runs/INC-02/multi/trial-1/report.md docs/examples/INC-02-multi-agent-report.md
-cp evals/results/final-claude-opus-5-5/runs/INC-02/single/trial-1/report.md docs/examples/INC-02-single-agent-report.md
+cp evals/results/final-gemini-3.8-flash/runs/INC-02/multi/trial-1/report.md docs/examples/INC-02-multi-agent-report.md
+cp evals/results/final-gemini-3.8-flash/runs/INC-02/single/trial-1/report.md docs/examples/INC-02-single-agent-report.md
 ```
 
 The `runs/` folders are git-ignored, so these copies are the reports reviewers will see.

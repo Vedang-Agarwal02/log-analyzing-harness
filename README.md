@@ -65,7 +65,7 @@ Every setting is in `config/default.yaml`. Use `--config my.yaml` to load anothe
 
 Agents (prompt, tools, effort, turn limits, and an optional per-agent `model`) are defined in `config/agents.yaml`, and their prompts in `prompts/`. Giving agents models from different providers mixes Claude and Gemini in one run.
 
-Environment variables: `ANTHROPIC_API_KEY` for Claude models, and `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) for Gemini models. Only the keys for the providers you use are needed.
+Environment variables: `ANTHROPIC_API_KEY` for Claude models, and `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) for Gemini models. Only the keys for the providers you use are needed. To reach Gemini through Google Cloud (Vertex AI) instead of an API key, set `GOOGLE_GENAI_USE_VERTEXAI=true`, `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` and sign in with `gcloud auth application-default login`; no code change is needed.
 
 ## How it works
 
@@ -138,6 +138,7 @@ On Linux, add `--user "$(id -u):$(id -g)"` to `docker run` so the files written 
 | To add | Do this |
 |---|---|
 | A tool | Write an async function with a Pydantic input model and decorate it with `@tool` (see `src/investigator/tools/`). Add it to `build_registry`, and list its name under the agent's `tools:` in `config/agents.yaml` |
+| An MCP server's tools | Run `uv sync --extra mcp`. In `runtime.run_investigation`, after `build_environment`, wrap the rest of the run in `async with connect_stdio("runbooks", "uvx", ["your-mcp-server"]) as toolset:` and call `registry.register_toolset(toolset)` first. Tools appear as `mcp__<server>__<tool>`; add those names to an agent's `tools:` list |
 | A telemetry backend | Implement a port from `src/investigator/backends/base.py` (for example a Loki `LogStore`) and pass it to `build_registry` |
 | A specialist agent | Add an entry under `specialists:` in `config/agents.yaml` and its prompt in `prompts/`. The planner sees it in its catalog |
 | An LLM provider | Implement `LLMClient` from `src/investigator/harness/llm.py` (see `src/investigator/harness/gemini_client.py`), and add its model-id prefix to `PROVIDER_PREFIXES` in `src/investigator/harness/routing.py` |
@@ -156,6 +157,7 @@ On Linux, add `--user "$(id -u):$(id -g)"` to `docker run` so the files written 
 - **Prompts tuned on Claude.** The prompts, effort levels and budgets were written for Claude. Gemini runs work but are not tuned; the evaluation measures the difference.
 - **Claude path not run live.** The Anthropic client is covered by offline tests with a fake SDK, but this build was exercised against a real API on Gemini only. Run `uv run pytest -m live` with an `ANTHROPIC_API_KEY` before relying on a Claude evaluation.
 - **Gemini API choice.** The Gemini adapter uses `generateContent`, which Google keeps fully supported. Google's newer Interactions API is not used.
+- **MCP adapter not wired.** `src/investigator/tools/mcp_toolset.py` is a library component; no CLI option or config key connects MCP servers yet.
 
 ## External dependencies
 
@@ -165,6 +167,7 @@ On Linux, add `--user "$(id -u):$(id -g)"` to `docker run` so the files written 
 | Gemini API (e.g. `gemini-4-argon`) | Real investigations and evaluations on Gemini | `GEMINI_API_KEY`; costs money; offline tests never call it |
 | Python 3.14 and uv | Everything | `uv sync` installs the versions pinned in `uv.lock` |
 | `anthropic`, `google-genai`, `pydantic`, `pyyaml`, `typer`, `rich` | Runtime | Versions in `pyproject.toml` |
+| `mcp` (optional extra) | The MCP adapter only | `uv sync --extra mcp` |
 | Docker (optional) | The container image | — |
 | GitHub Actions (optional) | CI and on-demand evaluations | — |
 
