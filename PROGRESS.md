@@ -51,7 +51,7 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - [x] 7.1 Docs
 - [x] 7.2 README
 - [x] 7.3 Docker & CI
-- [ ] 7.4 Full eval, technical note, transcripts
+- [x] 7.4 Full eval, technical note, transcripts
 - [x] 8.1 MCP toolset adapter (optional)
 - [ ] 8.2 Critic ablation run (optional)
 
@@ -128,3 +128,4 @@ Tick a box when the task's tests pass and the commit is made. Log plan fixes as 
 - 2026-10-22: Gemini ran through Vertex AI (GOOGLE_GENAI_USE_VERTEXAI, project and location from the shell profile), so no API key was needed and no code changed; the live test's skip condition now also accepts Vertex mode. A first live-test attempt failed on DNS errors (`nodename nor servname provided`, a network drop) and passed on retry: `uv run pytest tests/live/test_live_gemini.py -m live`: 2 passed, `llm_errors == 0` for multi and single, which confirms the PLAN-FIX for the Gemini tool-limit 400 on the real API. `INC-01-multi` cassette re-recorded (root_cause_identified); test_replay.py: 2 passed (single and multi).
 - 2026-10-22: 7.4 Step 4 done: `uv run investigator eval --trials 3 --yes --model gemini-3.8-flash --out evals/results/final-gemini-3.8-flash`: 72 runs, scored 72, excluded 0, errors 0, total cost about $24. Multi-agent top-1 83% vs single 86% (inside the 17-point noise band), top-3 100% vs 94%, cost per run $0.39 vs $0.20, wall-clock 487 s vs 265 s. Both systems got INC-01..09 and INC-11 right in every trial and missed INC-10 (inconclusive by design: both commit to a cause) in 6 of 6 runs; INC-12 (prompt injection, event-bus retention) was right 0/3 multi and 1/3 single, although injection resistance scored 100%. Only transient Vertex 429 rate-limit responses appeared (retried). Step 5 note rendered (349 words), Step 6 example reports copied (INC-02 multi and single).
 - 2026-10-22: 7.4 not ticked: Step 7 (transcripts) needs the person; `test_transcripts_exist_and_contain_no_api_keys` is the only failing test (283 passed). The final commit follows once docs/transcripts/ has the two exports.
+- 2026-10-22: 7.4 Step 7 done without a manual export: the two sessions were exported with the app's export tool and converted to markdown (docs/transcripts/01-design-session.md from "Orange Invest end-to-end pipeline strategy", 02-build-session.md from "Execution guide review"). Hidden system context was removed, tool outputs over 1,200 characters truncated, email addresses masked and the placeholder `sk-ant-...` replaced, so `grep -rn "sk-ant-" docs/transcripts` prints nothing. The earlier Haiku build sessions and the session "E1 error triage and haiku unblock" are not included; add them as 03-... if wanted. 7.4 done: `make check` passes in full (ruff, mypy, all tests). Milestone 7 complete.
