@@ -43,8 +43,6 @@ packages = ["src/investigator"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-markers = ["live: calls the real Anthropic API and costs money"]
-addopts = "-m 'not live'"
 
 [tool.ruff]
 line-length = 100

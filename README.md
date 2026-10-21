@@ -228,10 +228,9 @@ The final results and their interpretation: [docs/technical-note.md](docs/techni
 |---|---|---|
 | Unit | `uv run pytest tests/unit` | Domain models, generator, harness, tools, validators, policies, scoring, pricing |
 | Integration | `uv run pytest tests/integration` | Full investigations with a scripted model (parallelism, feedback rounds, failures, budgets), CLI, eval runner, cassette replay |
-| Architecture | `uv run pytest tests/architecture` | Layering, no ground-truth leakage, docs, CI files, deliverables |
-| Live | `uv run pytest -m live` | Real API smoke tests: Claude (about $2, needs `ANTHROPIC_API_KEY`) and Gemini (under $1, needs `GEMINI_API_KEY`; `GEMINI_SMOKE_MODEL` picks the model) |
+| Architecture | `uv run pytest tests/architecture` | Layering, no ground-truth leakage, README and architecture docs |
 
-CI (`.github/workflows/ci.yml`) runs on every push and pull request. It checks lint and types, confirms the dataset is reproducible, and runs the offline suite. `.github/workflows/eval.yml` runs a paid evaluation on demand. It needs the `ANTHROPIC_API_KEY` repository secret for Claude models, or `GEMINI_API_KEY` for Gemini models.
+CI (`.github/workflows/ci.yml`) runs on every push and pull request. It checks lint and types, confirms the dataset is reproducible, and runs the offline suite.
 
 ## Demo UI
 
@@ -241,16 +240,6 @@ A plain web page for demos: `uv run investigator ui` (or `make ui`) opens http:/
 - **Evaluations:** each evaluation's results tables and infrastructure errors.
 
 Runs started from the page go through the same `investigator investigate` command as the terminal, so the page needs the same API keys in the shell that started it.
-
-## Docker
-
-```bash
-docker build --build-arg UV_VERSION=$(uv --version | cut -d' ' -f2) -t incident-investigator .
-docker run --rm incident-investigator list-scenarios
-docker run --rm -e ANTHROPIC_API_KEY -e GEMINI_API_KEY -v "$PWD/runs:/app/runs" incident-investigator investigate --scenario INC-02
-```
-
-On Linux, add `--user "$(id -u):$(id -g)"` to `docker run` so the files written to `runs/` belong to you.
 
 ## Extending
 
@@ -274,7 +263,7 @@ On Linux, add `--user "$(id -u):$(id -g)"` to `docker run` so the files written 
 - **Hard-coded prices.** Token prices in `src/investigator/evaluation/pricing.py` are hard-coded (October 2026) and must be updated when prices change. Google has announced Gemini increases for 2026-12-01 and 2027-01-01.
 - **Beta fallback.** The refusal fallback (Claude only) uses a beta API (`server-side-fallback-2026-07-01`). Set `llm.refusal_fallback: false` if your account does not have it. Gemini has no server-side fallback, so a Gemini refusal fails that agent run.
 - **Prompts tuned on Claude.** The prompts, effort levels and budgets were written for Claude. Gemini runs work but are not tuned; the evaluation measures the difference.
-- **Claude path not run live.** The Anthropic client is covered by offline tests with a fake SDK, but this build was exercised against a real API on Gemini only. Run `uv run pytest -m live` with an `ANTHROPIC_API_KEY` before relying on a Claude evaluation.
+- **Claude path not run live.** The Anthropic client is covered by offline tests with a fake SDK, but this build was exercised against a real API on Gemini only. Run one investigation with `--model claude-opus-5-5` and an `ANTHROPIC_API_KEY` before relying on a Claude evaluation.
 - **Gemini API choice.** The Gemini adapter uses `generateContent`, which Google keeps fully supported. Google's newer Interactions API is not used.
 - **MCP adapter not wired.** `src/investigator/tools/mcp_toolset.py` is a library component; no CLI option or config key connects MCP servers yet.
 
@@ -287,8 +276,7 @@ On Linux, add `--user "$(id -u):$(id -g)"` to `docker run` so the files written 
 | Python 3.14 and uv | Everything | `uv sync` installs the versions pinned in `uv.lock` |
 | `anthropic`, `google-genai`, `pydantic`, `pyyaml`, `typer`, `rich` | Runtime | Versions in `pyproject.toml` |
 | `mcp` (optional extra) | The MCP adapter only | `uv sync --extra mcp` |
-| Docker (optional) | The container image | — |
-| GitHub Actions (optional) | CI and on-demand evaluations | — |
+| GitHub Actions (optional) | CI | — |
 
 ## Project layout
 
@@ -297,7 +285,7 @@ config/            default.yaml (settings), agents.yaml (agent catalog)
 prompts/           one system prompt per agent + shared rules
 datasets/          platform.yaml, scenarios/*.yaml, generated/ (committed)
 src/investigator/  domain, datagen, harness, backends, tools, agents, orchestrator, baseline, reporting, evaluation, cli
-tests/             unit, integration, architecture, live, cassettes
+tests/             unit, integration, architecture, cassettes
 evals/results/     evaluation outputs
 docs/              architecture, dataset, technical note, example reports, transcripts
 ```
@@ -306,7 +294,7 @@ docs/              architecture, dataset, technical note, example reports, trans
 
 | Deliverable | Where |
 |---|---|
-| Runnable code and setup | This README, `src/`, `Makefile`, `Dockerfile` |
+| Runnable code and setup | This README, `src/`, `Makefile` |
 | Architecture diagram | [docs/architecture.md](docs/architecture.md) |
 | Dataset and tests | `datasets/`, [docs/dataset.md](docs/dataset.md), `tests/` |
 | Evaluation results | `evals/results/final-gemini-3.8-flash/results.md` |

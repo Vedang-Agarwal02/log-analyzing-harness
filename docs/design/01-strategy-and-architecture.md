@@ -6,7 +6,7 @@
 | Status | Draft for review |
 | Date | 2026-10-20 |
 | Assignment | AI Engineer: "Build a Multi-Agent Production Incident Investigation System" |
-| Companion doc | `02-development-plan.md`, step-by-step build instructions for a coding model |
+| Companion doc | `02-development-plan.md`, step-by-step build instructions for a coding model (removed from the working tree after the build; see the git history) |
 | Decisions already confirmed | LLM providers: Claude (Anthropic API, the default) and Gemini (Gemini API), chosen per model id. Harness: thin custom harness (no agent framework) |
 
 ---

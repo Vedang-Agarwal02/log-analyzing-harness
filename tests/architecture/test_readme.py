@@ -10,7 +10,6 @@ SECTIONS = (
     "## How it works",
     "## Evaluation",
     "## Testing",
-    "## Docker",
     "## Extending",
     "## Limitations and incomplete functionality",
     "## External dependencies",
