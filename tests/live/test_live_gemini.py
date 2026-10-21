@@ -11,11 +11,15 @@ from investigator.runtime import build_llm, run_investigation
 from investigator.settings import load_settings
 
 GEMINI_SMOKE_MODEL = os.environ.get("GEMINI_SMOKE_MODEL", "gemini-3.8-flash")
-HAS_KEY = bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
+USES_VERTEX = os.environ.get("GOOGLE_GENAI_USE_VERTEXAI", "").lower() in ("1", "true")
+HAS_KEY = bool(os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or USES_VERTEX)
 
 
 @pytest.mark.live
-@pytest.mark.skipif(not HAS_KEY, reason="needs GEMINI_API_KEY (or GOOGLE_API_KEY)")
+@pytest.mark.skipif(
+    not HAS_KEY,
+    reason="needs GEMINI_API_KEY (or GOOGLE_API_KEY), or Vertex AI (GOOGLE_GENAI_USE_VERTEXAI=true)",
+)
 @pytest.mark.parametrize("system", ["multi", "single"])
 async def test_live_gemini_run_completes(system: str) -> None:
     settings = load_settings(None, {"llm": {"model": GEMINI_SMOKE_MODEL}})
