@@ -1,8 +1,127 @@
-# Incident investigator
+# Log Analyzing Harness
 
-A multi-agent system that investigates production incidents. Six cooperating LLM agents (Claude by default, or Gemini) query logs, metrics, deployments, config changes, service topology and incident history. They argue over competing hypotheses and produce a report with ranked root causes, supporting and contradicting evidence, confidence and recommended actions. When the evidence is not enough, the answer is an honest "inconclusive".
+A multi-agent harness that investigates production incidents. Give it an incident report and read-only access to logs, metrics, deployments, config changes and service topology. Six cooperating LLM agents (Claude or Gemini) work the problem in parallel, argue over competing root-cause hypotheses, and write a report in which every claim cites evidence that a tool actually returned. When the evidence is not enough, the answer is an honest "inconclusive".
 
-It runs against a simulated retail-investing platform with 12 generated incidents that include misleading evidence, conflicting signals, tool failures and a prompt injection. An automated evaluation compares it with a single-agent baseline on the same model, tools and budget.
+It runs against a simulated retail-investing platform with 12 generated incidents that include misleading evidence, conflicting signals, tool failures and a prompt injection. An automated evaluation compares it with a single-agent baseline that uses the same model, tools and budget.
+
+## What it does
+
+| | |
+|---|---|
+| **Input** | An incident report (title, severity, summary, affected services, customer impact). The agents get read-only tools over telemetry: `query_logs`, `query_metrics`, `list_metrics`, `detect_anomalies`, `get_deployments`, `get_config_changes`, `get_service_dependencies`, `list_services`, `search_incident_history` and `get_evidence` |
+| **Output** | `report.md` and `report.json`: ranked hypotheses with confidence, supporting and contradicting evidence, facts versus assumptions, a timeline, data gaps and prioritized actions. Also `trace.jsonl`, a record of every LLM and tool call |
+| **Verdict** | `root_cause_identified`, `probable_root_cause` or `inconclusive`, derived in code from the top hypothesis's confidence |
+
+What sets it apart:
+- **Grounded.** Every claim cites evidence IDs minted by tools. A citation that does not resolve is rejected and the agent has to correct it.
+- **Honest.** It can say "inconclusive" (scenario INC-10 is built to require it) and it lists the data gaps it could not close.
+- **Bounded.** Retries, a circuit breaker, a shared token and call budget and at most 3 critic rounds keep every run finite, and a failed task becomes a recorded data gap.
+- **Measured.** Deterministic scoring against ground truth the agents can never read, with the single-agent baseline as the comparison.
+
+## Design at a glance
+
+```mermaid
+flowchart LR
+  IN["Incident report<br/>title · severity · summary<br/>affected services"] --> PLAN["Planner agent<br/>builds a task graph"]
+  PLAN --> SCH["Scheduler<br/>runs ready tasks in parallel"]
+  subgraph SPEC["Specialist agents (read-only tools)"]
+    OBS["Observability<br/>logs · metrics · anomalies"]
+    DEP["Dependency<br/>deploys · config changes · topology"]
+  end
+  SCH --> OBS
+  SCH --> DEP
+  OBS --> BB[("Blackboard<br/>findings + evidence IDs")]
+  DEP --> BB
+  BB --> REA["Reasoning agent<br/>2-5 ranked hypotheses"]
+  REA --> CHK["Deterministic checks<br/>timeline · support · duplicates"]
+  CHK --> CRI{"Critic"}
+  CRI -->|"needs more evidence<br/>(up to 3 rounds)"| PLAN
+  CRI -->|"revise"| REA
+  CRI -->|"accept"| REP["Reporter agent<br/>citations validated in code"]
+  REP --> OUT["report.md · report.json<br/>trace.jsonl"]
+  OBS -.-> TOOLS["Tool layer<br/>timeout · retry · circuit breaker"]
+  DEP -.-> TOOLS
+  TOOLS -.-> FI["Fault injector"]
+  FI -.-> DATA[("Simulated telemetry<br/>ports for Loki · Prometheus · ArgoCD")]
+```
+
+A thin, provider-neutral agent harness runs every agent. A deterministic coordinator executes the planner's task graph, so scheduling, retries and termination are plain, testable code. More diagrams and the layer rules: [docs/architecture.md](docs/architecture.md). The 12 scenarios: [docs/dataset.md](docs/dataset.md).
+
+## Example: input and output
+
+This is a real recorded run on `gemini-3.8-flash`, scenario INC-01 (a bad deployment). **Input:**
+
+```json
+{
+  "incident_id": "INC-01",
+  "title": "Order placement failing with HTTP 500",
+  "severity": "SEV1",
+  "reported_at": "2026-03-10T10:21:00Z",
+  "affected_services": ["api-gateway", "orders-service"],
+  "customer_impact": "About 35% of order submissions failing",
+  "summary": "Since about 10:12 UTC roughly a third of order placement requests (POST /api/v1/orders) fail with HTTP 500. Customers see \"Something went wrong\" when submitting orders. Other pages appear to work."
+}
+```
+
+**Output** (an excerpt of the generated `report.md`, copied verbatim and trimmed to the main parts; the full report also has the executive summary, facts, assumptions, data gaps, a timeline and an evidence appendix):
+
+```markdown
+**Status:** Root cause identified (top confidence 0.85 >= 0.75)
+
+### 1. Regression in LimitPriceValidator shipped in orders-service v4.18.0 deployment (confidence 0.85, high)
+
+- **Root-cause service:** orders-service
+- **Category:** bad_deployment
+- **Trigger:** dep-0009
+- **Supporting evidence:**
+  - `dep-0009`: orders-service 4.17.3 -> 4.18.0 deployed 2026-03-10T10:08:00Z by chen (succeeded): Refactor limit-price validation; switch to the new quote client
+  - `logpat-9f3348fb`: 600x ERROR "NullPointerException in LimitPriceValidator.validate(LimitPriceValidator.java:<N>) for order <ID>" in orders-service (2026-03-10T10:11:00Z to 2026-03-10T10:30:59Z)
+  - `met-64d320dc`: orders-service error_rate_pct: 0.307 -> 16.679 % from 2026-03-10T09:49:00Z (max 42.844)
+- **Contradicting evidence:**
+  - none
+
+### 2. quotes-service returning null quote data leading to validator crash (confidence 0.10, low)
+
+- **Contradicting evidence:**
+  - `met-8fa3f53e`: quotes-service error_rate_pct: no significant change; mean 0.2, max 0.262 % (2026-03-10T07:21:00Z to 2026-03-10T10:31:00Z)
+
+| Priority | Kind | Action |
+|---|---|---|
+| P0 | mitigate | Roll back orders-service deployment dep-0009 from version 4.18.0 to the previous stable version 4.17.3. |
+| P1 | fix | Inspect git diff for dep-0009 in LimitPriceValidator.java (lines 82-90), fix the unhandled null dereference, add defensive null checks, and write regression tests before redeploying. |
+| P2 | prevent | Add automated integration tests covering limit order placement validation with missing/null quote responses, and implement canary rollout validation gates monitoring error rates before 100% pod cutover. |
+```
+
+Every ID in the report (`dep-0009`, `logpat-...`, `met-...`) is a handle for something a tool returned, and the evidence appendix at the bottom of the report resolves each one.
+
+## Demo (offline, no API key, no cost)
+
+Recorded real model responses are replayed through the full pipeline, so you can watch the system work without calling any API:
+
+```bash
+uv sync
+uv run investigator investigate --scenario INC-01 --system multi --model gemini-3.8-flash \
+  --replay tests/cassettes/gemini-3.8-flash/INC-01-multi.json
+```
+
+```text
+                                 INC-01 (multi)
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Field                               ┃ Value                                  ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ Status                              │ root_cause_identified                  │
+│ Termination                         │ critic_accepted                        │
+│ Top hypothesis                      │ Regression in LimitPriceValidator      │
+│                                     │ shipped in orders-service v4.18.0      │
+│                                     │ deployment [orders-service /           │
+│                                     │ bad_deployment] (0.85)                 │
+│ LLM calls / tool calls              │ 30 / 57                                │
+│ Wall-clock                          │ 1.9s (replay)                          │
+│ Report                              │ runs/INC-01-multi-…/report.md          │
+└─────────────────────────────────────┴────────────────────────────────────────┘
+```
+
+The table is trimmed to its main rows, and the replay takes seconds because no model is called. Then print the full tree of what every agent and tool did with `uv run investigator show-trace runs/<run-id>`, or open the demo UI with `uv run investigator ui`. For a live run on your own API key, see the Quickstart below.
 
 ## Quickstart
 
